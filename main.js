@@ -11,22 +11,26 @@ const connection = mysql.createConnection({
 	password:cfg.dbPass
 });
 const adminRoles = {
-	1:"sample own",
-	2:"sample admin",
-	3:"sample mod",
-	4:"sample observer",
-	5:"sample bots"
+	0:"sample own",
+	1:"sample admin",
+	2:"sample mod",
+	3:"sample observer",
+	4:"sample bots"
+}
+const userRoles  = {//TODO: 0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
+
 }
 const adminNums  = {
-	"own"   :1,
-	"admin" :2,
-	"mod"   :3,
-	"obs"   :4,
-	"bot"   :5
+	"own"   :0,
+	"admin" :1,
+	"mod"   :2,
+	"obs"   :3,
+	"bot"   :4
 }
 
-let admins=[];
 let own;
+let sample;
+let admins=[];
 
 function userCommands(msg){
 	let mess=msg.content.split(" ")
@@ -37,13 +41,13 @@ function userCommands(msg){
 	}
 }
 
-
 bot.on('ready',()=>{
 	connection.query('SELECT uID from admin;', (err,data)=>{
 		data.forEach(it=>{
 			admins.push(it.uID)
 		})
 	})
+	sample=bot.guilds.cache.find(g=>g.id==='845744837315133450')
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 })
 bot.on('message',msg=>{
@@ -63,7 +67,7 @@ bot.on('message',msg=>{
 									connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]})`,(err)=>{
 										if(err)console.log(err);
 									})
-									msg.mentions.members.first().roles.add(bot.guilds.cache.get('845744837315133450').roles.cache.find(role=>role.name === adminRoles[adminNums[aMess[3]]]))
+									msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[aMess[3]]]))
 									msg.reply("Пользователь успешно поставлен на пост!")
 								}else{
 									connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
@@ -78,7 +82,7 @@ bot.on('message',msg=>{
 										connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]})`,(err)=>{
 											if(err)console.log(err);
 										})
-										msg.mentions.members.first().roles.add(bot.guilds.cache.get('845744837315133450').roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
+										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
 										msg.reply("Пользователь успешно поставлен на пост!")
 									});
 								}
@@ -101,7 +105,7 @@ bot.on('message',msg=>{
 										connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err)=>{
 											if(err)console.log(err);
 										})
-										msg.mentions.members.first().roles.add(bot.guilds.cache.get('845744837315133450').roles.cache.find(role=>role.name === adminRoles[adminNums[m.content]]))
+										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[m.content]]))
 										msg.reply("Пользователь успешно поставлен на пост!")
 									}else{
 										msg.reply("own|admin|mod|obs|bot")
@@ -112,7 +116,7 @@ bot.on('message',msg=>{
 											connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]}) `,(err)=>{
 												if(err)console.log(err);
 											})
-											msg.mentions.members.first().roles.add(bot.guilds.cache.get('845744837315133450').roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
+											msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
 											msg.reply("Пользователь успешно поставлен на пост!")
 										});
 									}
@@ -132,7 +136,7 @@ bot.on('message',msg=>{
 							case"admin":
 								connection.query(`SELECT perm FROM admin WHERE uID = ${msg.mentions.members.first().id};`, (err,res)=>{
 									if(err) console.log(err);
-									msg.mentions.members.first().roles.remove(bot.guilds.cache.get('845744837315133450').roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
+									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
 								})
 								connection.query("DELETE FROM admin WHERE uID=?", msg.mentions.members.first().id,(err)=>{
 									if(err)console.log(err);
@@ -152,7 +156,7 @@ bot.on('message',msg=>{
 						collector.on("collect", m=>{
 							switch(m.content){
 								case"admin":
-									msg.mentions.members.first().roles.remove(bot.guilds.cache.get('845744837315133450').roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
+									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
 									connection.query("DELETE FROM admin WHERE uID=?", msg.mentions.members.first().id,(err)=>{
 										if(err)console.log(err);
 									})
@@ -172,7 +176,6 @@ bot.on("guildMemberAdd", mbr=>{
 	/*
 	TODO:
     сделать создание голосового канала с названием "for strangers" и отправкой в лс сообщения "Зайди в войс "for strangers""
-    что-то придумать с бд. Либо объеденить несколько бд(пользовательская и админская) в одну, либо сделать одельную бд.
 	*/
 	/*
 	Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
@@ -181,11 +184,49 @@ bot.on("guildMemberAdd", mbr=>{
 	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
 	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
-	connection.query(`SELECT uID WHERE uID = ${mbr.id} from admin`, (err,res)=>{
+	connection.query(`SELECT * WHERE uID = ${mbr.id} from user`, (err,res)=>{
 		if(err){
-			//connection.query("INSERT INTO admin(uID, perm)")
+			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0)`, (err)=>{
+				if(err)console.log(err);
+			});
+			//создание голосового чата в категории sample start
+
+			bot.channels.cache.find(ch=>ch.name==="sample-starting").send(`Был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
+		}else{
+			if(res[0].banned){
+				mbr.kick("Banned status");
+				bot.channels.cache.find(ch=>ch.name==="sample-logs").send(`Супостат ${mbr.name} не смог проникнуть на нашу святую землю!!!`);
+			}else{
+				if(res[0].trust_factor>150){
+					mbr.createDM().then(dm=>{dm.send("Мне было скучно без Вас:(")});
+					mbr.guild.roles.cache.find(rl=>rl.name===userRoles[res[0].perm]);
+				}
+			}
 		}
 	})
+})
+bot.on("voiceStateUpdate", (vc1,vc2)=>{
+	//console.log(vc1)
+	//console.log(vc2.guild.channels)
+	if(vc2.channelID==="845745906745868289"){
+		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
+			type:'voice',
+			parent:sample.channels.cache.get('845745372814114846'),
+			permissionOverwrites:[
+				{
+					id: vc2.id,
+					allow: ['MANAGE_CHANNELS','MANAGE_ROLES']
+				}
+			]
+		})
+			.then(ch=>{
+				vc2.setChannel(ch)
+			})
+	}else{
+		if(vc1.channelID!=="845745906745868289"&&vc1!=="846508958122639370"){
+			sample.channels.cache.get(vc1.channelID).delete()
+		}
+	}
 })
 
 bot.login(cfg.token)
