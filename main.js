@@ -17,8 +17,10 @@ const adminRoles = {
 	3:"sample observer",
 	4:"sample bots"
 }
-const userRoles  = {//TODO: 0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
-
+const userRoles  = {//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
+	0:"sample newbie",
+	1:"sample user",
+	2:"sample junior"
 }
 const adminNums  = {
 	"own"   :0,
@@ -32,6 +34,9 @@ let own;
 let sample;
 let admins=[];
 
+function delChannel(ch){
+	ch.delete("test")
+}
 function userCommands(msg){
 	let mess=msg.content.split(" ")
 	switch(mess[0]){
@@ -84,6 +89,7 @@ bot.on('message',msg=>{
 										})
 										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
 										msg.reply("Пользователь успешно поставлен на пост!")
+										col.stop()
 									});
 								}
 								break;
@@ -101,24 +107,29 @@ bot.on('message',msg=>{
 										if(err) console.log(err);
 										own=res[0].uID;
 									})
-									if(m.content[1]){
-										connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err)=>{
-											if(err)console.log(err);
-										})
-										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[m.content]]))
-										msg.reply("Пользователь успешно поставлен на пост!")
-									}else{
-										msg.reply("own|admin|mod|obs|bot")
-										const col=new Discord.MessageCollector(m.channel,n => n.author.id===own,{
-											time:3600000
-										})
-										col.on("collect",n => {
-											connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]}) `,(err)=>{
-												if(err)console.log(err);
+									if(msg.mentions.members.first().id){
+										if(m.content[1]){
+											connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
+												if(err) console.log(err);
 											})
-											msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
+											msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[m.content]]))
 											msg.reply("Пользователь успешно поставлен на пост!")
-										});
+										}else{
+											msg.reply("own|admin|mod|obs|bot")
+											const col=new Discord.MessageCollector(m.channel,n => n.author.id===own,{
+												time:3600000
+											})
+											col.on("collect",n => {
+												connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]}) `,(err) => {
+													if(err) console.log(err);
+												})
+												msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[n.content]]))
+												msg.reply("Пользователь успешно поставлен на пост!")
+
+											});
+										}
+									}else{
+
 									}
 								break;
 							}
@@ -166,17 +177,18 @@ bot.on('message',msg=>{
 						})
 					}
 				break;
+				default:
+					userCommands(msg)
+				break;
 			}
 		}else{
 			userCommands(msg);
 		}
+	}else{
+		//TODO: сделать функцию обработки сообщений
 	}
 })
 bot.on("guildMemberAdd", mbr=>{
-	/*
-	TODO:
-    сделать создание голосового канала с названием "for strangers" и отправкой в лс сообщения "Зайди в войс "for strangers""
-	*/
 	/*
 	Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
 	Если оценка ниже определённого порога, то модеру и админской команде сообщается о его успеваниях.
@@ -184,30 +196,50 @@ bot.on("guildMemberAdd", mbr=>{
 	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
 	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
-	connection.query(`SELECT * WHERE uID = ${mbr.id} from user`, (err,res)=>{
-		if(err){
+	connection.query(`SELECT * FROM users WHERE uID = '${mbr.id}'`, (err,res)=>{
+		if(err)console.log(err);
+		if(res.length===0){
 			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0)`, (err)=>{
 				if(err)console.log(err);
 			});
-			//создание голосового чата в категории sample start
-
-			bot.channels.cache.find(ch=>ch.name==="sample-starting").send(`Был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
+			mbr.roles.add(sample.roles.cache.get("846738135798251540"))
+			if(!bot.channels.cache.find(ch=>ch.name==="for strangers")){
+				sample.channels.create(`for strangers`,{
+					type:'voice',
+					parent:sample.channels.cache.get('846476470565077062'),
+					permissionOverwrites:[
+						{
+							id:'845744837315133450',
+							deny:['VIEW_CHANNEL']
+						},
+						{
+							id:'846738135798251540',
+							allow:['VIEW_CHANNEL']
+						}
+					]
+				})
+					.then(vch=>{
+						setTimeout(delChannel,300000,sample.channels.cache.find(c=>c.id===vch.id))//300000
+					})
+			}
+			bot.channels.cache.find(ch=>ch.name==="sample-starting").send(`<@${mbr.id}> был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
 		}else{
 			if(res[0].banned){
 				mbr.kick("Banned status");
 				bot.channels.cache.find(ch=>ch.name==="sample-logs").send(`Супостат ${mbr.name} не смог проникнуть на нашу святую землю!!!`);
 			}else{
 				if(res[0].trust_factor>150){
-					mbr.createDM().then(dm=>{dm.send("Мне было скучно без Вас:(")});
-					mbr.guild.roles.cache.find(rl=>rl.name===userRoles[res[0].perm]);
+					mbr.createDM().then(dm => {
+						dm.send("Мне было скучно без Вас:(")
+					});
+					mbr.guild.roles.cache.find(rl => rl.name===userRoles[res[0].perm]);
 				}
+				mbr.roles.add(sample.roles.cache.find(r => r.name===userRoles[res[0].perm]))
 			}
 		}
 	})
 })
 bot.on("voiceStateUpdate", (vc1,vc2)=>{
-	//console.log(vc1)
-	//console.log(vc2.guild.channels)
 	if(vc2.channelID==="845745906745868289"){
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'voice',
