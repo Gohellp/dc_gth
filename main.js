@@ -30,6 +30,8 @@ const adminNums  = {
 	"bot"   :4
 }
 
+//TODO: поиграться с API pixiv'а
+
 let own;
 let sample;
 let admins=[];
@@ -37,11 +39,26 @@ let admins=[];
 function delChannel(ch){
 	ch.delete("test")
 }
-function userCommands(msg){
+async function userCommands(msg){
 	let mess=msg.content.split(" ")
 	switch(mess[0]){
-		case"":
+		case"!help":
+			if(!msg[1]){
+				//TODO: Всё-таки, придумать что написать в хелпе
+				msg.channel.send("")
+			}else{
+				switch(msg[1]){
+					case"":
 
+					break;
+				}
+			}
+		break;
+		case"!play":
+			//TODO: адаптировать код с https://github.com/TannerGabriel/discord-bot к работе здесь.
+		break;
+		default:
+			msg.reply(`Комманды "${msg.content}" не существует. Прошу Вас ознакомиться с нашим справочником комманд(!hellp).`)
 		break;
 	}
 }
@@ -55,7 +72,8 @@ bot.on('ready',()=>{
 	sample=bot.guilds.cache.find(g=>g.id==='845744837315133450')
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 })
-bot.on('message',msg=>{
+bot.on('message',async(msg)=>{
+	if(msg.author.bot)return;
 	if(!msg.author.bot&&msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
 			let aMess=msg.content.split(" ")
@@ -178,14 +196,32 @@ bot.on('message',msg=>{
 					}
 				break;
 				default:
-					userCommands(msg)
+					await userCommands(msg)
 				break;
 			}
 		}else{
-			userCommands(msg);
+			await userCommands(msg);
 		}
 	}else{
 		//TODO: сделать функцию обработки сообщений
+		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id}`,(err,res)=>{
+			if(err)console.log(err)
+			if(res.length!=0){
+				if(res[0].msgCount%res[0].divisor!==0){
+					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id}`,(err)=>{
+						if(err)console.log(err)
+					})
+				}else{
+					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25,msg.author.id],(err)=>{
+						if(err) console.log(err);
+					})
+				}
+			}else{
+				connection.query(`INSERT INTO users(uID) VALUES ('${msg.author.id}')`,(err)=>{
+					if(err)console.log(err)
+				})
+			}
+		})
 	}
 })
 bot.on("guildMemberAdd", mbr=>{
