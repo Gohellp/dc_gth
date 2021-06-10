@@ -1,7 +1,7 @@
 const Discord = require('discord.js');
 const moment = require('moment');
 const mysql = require('mysql2');
-const cfg = require('./config.json')
+const cfg = require('./config.json');
 const bot = new Discord.Client();
 
 const connection = mysql.createConnection({
@@ -30,8 +30,6 @@ const adminNums  = {
 	"bot"   :4
 }
 
-//TODO: поиграться с API pixiv'а
-
 let own;
 let sample;
 let admins=[];
@@ -39,23 +37,94 @@ let admins=[];
 function delChannel(ch){
 	ch.delete("test")
 }
-async function userCommands(msg){
+function userCommands(msg){
 	let mess=msg.content.split(" ")
+	mess[0]=mess[0].toLowerCase()
 	switch(mess[0]){
+		/*
+		TODO:!bagrep, !question, !faq(создавать на основе вопроса-ответа, полученных в !question) и
+			!helpme(помощь людям с их личными проблемами). Хочу сделать утопическую инфраструктуру,
+			которую будет ОЧЕНЬ сложно обмануть
+		*/
 		case"!help":
-			if(!msg[1]){
+			if(!mess[1]){
 				//TODO: Всё-таки, придумать что написать в хелпе
-				msg.channel.send("")
+				msg.channel.send(`Here is bot's commands:\ncoming soon:D`)
 			}else{
-				switch(msg[1]){
-					case"":
-
-					break;
+				switch(mess[1]){
+					case"admin":
+						connection.query(`SELECT * FROM admin WHERE uID = ${msg.author.id}`,(err,res)=>{
+							if(res.length!=0){
+								msg.reply(
+`Here is all admins commands:
+!add {mention} {somewhere} (perms) - adds a user to somewhere
+!del {mention} {somewhere} - removes the user from anywhere
+coming soon:D`
+								)
+							}else{
+								msg.reply("Эта комманда доступна только админам сервера.")
+							}
+						})
+						break;
 				}
 			}
 		break;
-		case"!play":
-			//TODO: адаптировать код с https://github.com/TannerGabriel/discord-bot к работе здесь.
+		case"!report":
+			if(mess[1]&&mess[2]&&mess[3]){
+				mess.shift()
+				bot.channels.cache.find(ch=>ch.id==="852608455352909834").send(`Жалоба получена от <@${msg.author.id}>`)
+					.then(message=>{
+						message.react('❌');message.react('✔');
+						const filter = (reaction, user) => {
+							return ['❌', '✔'].includes(reaction.emoji.name) && !user.bot;
+						};
+						const reactColl = message.createReactionCollector(filter,{
+							max: 1,
+							time:18000000,
+						});
+
+						reactColl.on("collect",react=>{
+							console.log(react)
+							if(react.emoji.name==="✔"){
+
+							}else if(react.emoji.name==="❌"){
+								/*
+								TODO:Дима, тебе пизда. Зря ты решил это делать. Надо создать ещё один коллектор реакций и
+									ещё один then для работы всего ЭТОГО. Земля тебе пухом.
+								*/
+								message.channel.send("Голосование за снятие тикета")
+								const denyColl = new Discord.MessageCollector(message.channel, user=>!user.bot,{
+									time:1800000,
+								})
+							}else{
+								connection.query(`select * from admin where uID = ${react.author.id}`,(err,res)=>{
+									if(err)console.log(err);
+									connection.query(`insert admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1})`,(err)=>{
+										if(err) return console.log(err)
+										console.log(`Фактор доверия ${react.author.id} был понижен из-за пренебрежительного отношения к боту.`)
+									})
+								})
+							}
+						})
+					})
+			}else{
+				msg.reply("Вы забыли указать, как минимум пользователя, правило и айди сообщения/канал, в котором это произошло.")
+			}
+/*
+|тикет - запрос на вызов админа для выявления нарушений правил сервера. Он предназначен НЕ ДЛЯ задавания вопросов,
+|решения личностных конфликтов, или развлечения Отправителя. За использование тикета не по назначению будет кара
+|небесная. Тикет будет одним из важнейших звеньев в инфраструктуре сервера.
+TODO: отправка репортов с возможностью согласиться на тикет через нажатие реакции. После нажатия на
+	реакцию, она пропадает и тикет обновляется(редактирование сообщения) и бот запрашивает время, за которое
+	админ обязан выполнить выбранный тикет. Тикет заносится в отдельную таблицу в базе данных. В таблице будут:
+	айди Отправителя тикета, айди принявшего, айди сообщения с тикетом(дял логов и лс принявшего) и время,
+	выделенное на тикет(мб буду записывать дату окончания тикета), которое не может быть более 12 часов.
+	В лс будет сообщение с реакциями: галочка - выполнено, крест - отклонить(понижает фактор доверия админа)
+	и *что-то* - в ходе выполнения тикета было выявлено, что: а)Отправитель сам разобрался; б)тикет был
+	отправлен "по приколу"(мут на 4 часа и запрет на использование тикетов); в)тикет был создан из-за незнания
+	правил сервера(понижение прав доступа, вплоть до обязательного повторного прохождения вступления). При слишком
+	частом использования его будет накладываться перманентный запрет на тикеты(создать 2 доп колонки в юзерской дб)
+*/
 		break;
 		default:
 			msg.reply(`Комманды "${msg.content}" не существует. Прошу Вас ознакомиться с нашим справочником комманд(!hellp).`)
@@ -63,7 +132,7 @@ async function userCommands(msg){
 	}
 }
 
-bot.on('ready',()=>{
+bot.once('ready',()=>{
 	connection.query('SELECT uID from admin;', (err,data)=>{
 		data.forEach(it=>{
 			admins.push(it.uID)
@@ -72,11 +141,11 @@ bot.on('ready',()=>{
 	sample=bot.guilds.cache.find(g=>g.id==='845744837315133450')
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 })
-bot.on('message',async(msg)=>{
+bot.on('message',async (msg)=>{
 	if(msg.author.bot)return;
 	if(!msg.author.bot&&msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
-			let aMess=msg.content.split(" ")
+			let aMess=msg.content.toLowerCase().split(" ")
 			switch(aMess[0]){
 				case"!add":
 					if(!msg.mentions.members){
@@ -195,18 +264,34 @@ bot.on('message',async(msg)=>{
 						})
 					}
 				break;
+				case"!rm":
+					const args = msg.content.split(' ');
+					let deleteCount = 0;
+					try {
+						deleteCount = parseInt(args[1], 10);
+					}catch(err) {
+						return msg.reply('Please provide the number of messages to delete. (max 100)')
+					}
+					if (!deleteCount || deleteCount < 2 || deleteCount > 100)
+						return msg.reply('Please provide a number between 2 and 100 for the number of messages to delete');
+
+					const fetched = await msg.channel.messages.fetch({
+						limit: deleteCount,
+					});
+					msg.channel.bulkDelete(fetched)
+						.catch(error => msg.reply(`Couldn't delete messages because of: ${error}`));
+				break;
 				default:
-					await userCommands(msg)
+					userCommands(msg)
 				break;
 			}
 		}else{
-			await userCommands(msg);
+			userCommands(msg);
 		}
 	}else{
-		//TODO: сделать функцию обработки сообщений
 		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id}`,(err,res)=>{
 			if(err)console.log(err)
-			if(res.length!=0){
+			if(res.length!==0){
 				if(res[0].msgCount%res[0].divisor!==0){
 					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id}`,(err)=>{
 						if(err)console.log(err)
@@ -276,7 +361,7 @@ bot.on("guildMemberAdd", mbr=>{
 	})
 })
 bot.on("voiceStateUpdate", (vc1,vc2)=>{
-	if(vc2.channelID==="845745906745868289"){
+	if(vc2.channelID==="847600018756337674"){
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'voice',
 			parent:sample.channels.cache.get('845745372814114846'),
@@ -291,7 +376,7 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 				vc2.setChannel(ch)
 			})
 	}else{
-		if(vc1.channelID!=="845745906745868289"&&vc1!=="846508958122639370"){
+		if((vc1.channelID!=="847600018756337674")&&(vc1.channelID!=="847601022066360351")){
 			sample.channels.cache.get(vc1.channelID).delete()
 		}
 	}
