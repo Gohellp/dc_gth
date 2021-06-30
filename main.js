@@ -29,13 +29,20 @@ const adminNums  = {
 	"obs"   :3,
 	"bot"   :4
 }
+const answ={
+	"нет":false,
+	"yes":false,
+	"да":true,
+	"no":true,
+	"гы":"WTF"
+}
 
 let own;
 let sample;
 let admins=[];
 
-function delChannel(ch){
-	ch.delete("test")
+function delChannel(ch,text){
+	ch.delete(text)
 }
 function userCommands(msg){
 	let mess=msg.content.split(" ")
@@ -54,7 +61,7 @@ function userCommands(msg){
 				switch(mess[1]){
 					case"admin":
 						connection.query(`SELECT * FROM admin WHERE uID = ${msg.author.id}`,(err,res)=>{
-							if(res.length!=0){
+							if(res.length!==0){
 								msg.reply(
 `Here is all admins commands:
 !add {mention} {somewhere} (perms) - adds a user to somewhere
@@ -79,7 +86,7 @@ coming soon:D`
 							return ['❌', '✔'].includes(reaction.emoji.name) && !user.bot;
 						};
 						const reactColl = message.createReactionCollector(filter,{
-							max: 1,
+							max: 3,
 							time:18000000,
 						});
 
@@ -93,9 +100,17 @@ coming soon:D`
 									ещё один then для работы всего ЭТОГО. Земля тебе пухом.
 								*/
 								message.channel.send("Голосование за снятие тикета")
-								const denyColl = new Discord.MessageCollector(message.channel, user=>!user.bot,{
-									time:1800000,
-								})
+									.then(msj=>{
+										msj.react('➕')
+										msj.react('➖')
+										const reactCollect = msj.createReactionCollector(filter,{
+											max: 5,
+											time:18000000,
+										});
+										reactCollect.on("collect",reaction=>{
+
+										})
+									})
 							}else{
 								connection.query(`select * from admin where uID = ${react.author.id}`,(err,res)=>{
 									if(err)console.log(err);
@@ -117,7 +132,7 @@ coming soon:D`
 TODO: отправка репортов с возможностью согласиться на тикет через нажатие реакции. После нажатия на
 	реакцию, она пропадает и тикет обновляется(редактирование сообщения) и бот запрашивает время, за которое
 	админ обязан выполнить выбранный тикет. Тикет заносится в отдельную таблицу в базе данных. В таблице будут:
-	айди Отправителя тикета, айди принявшего, айди сообщения с тикетом(дял логов и лс принявшего) и время,
+	айди Отправителя тикета, айди принявшего, айди сообщения с тикетом(для логов и лс принявшего) и время,
 	выделенное на тикет(мб буду записывать дату окончания тикета), которое не может быть более 12 часов.
 	В лс будет сообщение с реакциями: галочка - выполнено, крест - отклонить(понижает фактор доверия админа)
 	и *что-то* - в ходе выполнения тикета было выявлено, что: а)Отправитель сам разобрался; б)тикет был
@@ -340,7 +355,7 @@ bot.on("guildMemberAdd", mbr=>{
 					]
 				})
 					.then(vch=>{
-						setTimeout(delChannel,300000,sample.channels.cache.find(c=>c.id===vch.id))//300000
+						setTimeout(delChannel,300000,sample.channels.cache.find(c=>c.id===vch.id),"Deleted by time")//300000
 					})
 			}
 			bot.channels.cache.find(ch=>ch.name==="sample-starting").send(`<@${mbr.id}> был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
@@ -362,6 +377,7 @@ bot.on("guildMemberAdd", mbr=>{
 })
 bot.on("voiceStateUpdate", (vc1,vc2)=>{
 	if(vc2.channelID==="847600018756337674"){
+		//TODO: задать вопрос про создание текстового канала и про дальнейшее его удаление
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'voice',
 			parent:sample.channels.cache.get('845745372814114846'),
@@ -374,10 +390,45 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 		})
 			.then(ch=>{
 				vc2.setChannel(ch)
+				sample.members.cache.find(m=>m.id===vc2.id).createDM()
+					.then(DMchat=>{
+						const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
+							time:120000,
+						})
+						DMchat.send("Хотите ли вы создать текстовый канал?(да/нет)")
+						collector.on("collect", msg=>{
+
+							if(answ[msg.content.toLowerCase()]){
+								sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s text_channel`,{
+									type:'text',
+									parent:sample.channels.cache.get('845745372814114846'),
+									permissionOverwrites:[
+										{
+											id: msg.author.id,
+											allow: ['MANAGE_CHANNELS','MANAGE_ROLES','MANAGE_MESSAGES ','ADMINISTRATOR']
+										},
+										{
+											id: "845744837315133450",
+											deny: ['VIEW_CHANNEL', 'SEND_MESSAGES']
+										}
+									]
+								})
+							}else{
+								DMchat.send("Хотите ли вы, чтобы я задавал этот вопрос в дальнейшем?(yes|no|гы)")
+								//TODO: Создать коллектор внутри коллектора дабы проверить
+								collector.stop("No one reason to be here")
+							}
+						})
+					})
 			})
 	}else{
+		//TODO: проверка БД на владельца канала
 		if((vc1.channelID!=="847600018756337674")&&(vc1.channelID!=="847601022066360351")){
-			sample.channels.cache.get(vc1.channelID).delete()
+			try{
+				sample.channels.cache.get(vc1.channelID).delete()
+			}catch(e){
+				console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
+			}
 		}
 	}
 })
