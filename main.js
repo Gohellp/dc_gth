@@ -5,7 +5,7 @@ const cfg = require('./config.json');
 const bot = new Discord.Client();
 
 const connection = mysql.createConnection({
-	host:"localhost",
+	host:cfg.dbHost,
 	user:cfg.dbLogin,
 	database:"gth_db",
 	password:cfg.dbPass
@@ -413,6 +413,8 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 										}
 									]
 								})
+							}else if("WTF"){
+								DMchat.send("Гыыыыыыы")//TODO: сделать attach с записаным ГЫЫЫЫЫЫЫЫ XD (насколько ж мне нечем заняться:D)
 							}else{
 								DMchat.send("Хотите ли вы, чтобы я задавал этот вопрос в дальнейшем?(yes|no|гы)")
 								//TODO: Создать коллектор внутри коллектора дабы проверить
