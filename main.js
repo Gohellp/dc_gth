@@ -209,7 +209,7 @@ bot.on('message',async (msg)=>{
 										if(err) console.log(err);
 										own=res[0].uID;
 									})
-									if(msg.mentions.members.first().id){
+									if(msg.mentions.members.id){
 										if(m.content[1]){
 											connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
 												if(err) console.log(err);
