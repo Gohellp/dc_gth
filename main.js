@@ -392,7 +392,8 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 				vc2.setChannel(ch)
 				sample.members.cache.find(m=>m.id===vc2.id).createDM()
 					.then(DMchat=>{
-						const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
+						DMchat.send(`Не забудьте убрать за собой после игры!`)
+						/*const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
 							time:120000,
 						})
 						DMchat.send("Хотите ли вы создать текстовый канал?(да/нет)")
@@ -420,18 +421,18 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 								//TODO: Создать коллектор внутри коллектора дабы проверить
 								collector.stop("No one reason to be here")
 							}
-						})
+						})*/
 					})
 			})
 	}else{
 		//TODO: проверка БД на владельца канала
-		if((vc1.channelID!=="847600018756337674")&&(vc1.channelID!=="847601022066360351")){
+		/*if((vc1.channelID!=="847600018756337674")&&(vc1.channelID!=="847601022066360351")){
 			try{
 				sample.channels.cache.get(vc1.channelID).delete()
 			}catch(e){
 				console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
 			}
-		}
+		}*/
 	}
 })
 
