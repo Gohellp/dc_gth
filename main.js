@@ -298,7 +298,9 @@ bot.on('message',async(msg)=>{
 				break;
 				case"!reboot":
 					msg.reply("Будет выполнено!")
-					process.exit("reboot")
+						.then(()=>{
+							process.exit("reboot")
+						})
 				break;
 				default:
 					userCommands(msg)
