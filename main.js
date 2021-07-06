@@ -1,35 +1,35 @@
 const Discord = require('discord.js');
-const moment = require('moment');
-const mysql = require('mysql2');
-const cfg = require('./config.json');
-const bot = new Discord.Client();
+const moment  = require('moment');
+const mysql   = require('mysql2');
+const cfg     = require('./config.json');
+const bot     = new Discord.Client();
 
-const connection = mysql.createConnection({
+const connection =mysql.createConnection({
 	host:cfg.dbHost,
 	user:cfg.dbLogin,
 	database:"gth_db",
 	password:cfg.dbPass
 });
-const adminRoles = {
+const adminRoles ={
 	0:"sample own",
 	1:"sample admin",
 	2:"sample mod",
 	3:"sample observer",
 	4:"sample bots"
 }
-const userRoles  = {//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
+const userRoles  ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
 	0:"sample newbie",
 	1:"sample user",
 	2:"sample junior"
 }
-const adminNums  = {
+const adminNums  ={
 	"own"   :0,
 	"admin" :1,
 	"mod"   :2,
 	"obs"   :3,
 	"bot"   :4
 }
-const answ={
+const answer     ={
 	"нет":false,
 	"yes":false,
 	"да":true,
@@ -155,8 +155,8 @@ bot.once('ready',()=>{
 	})
 	sample=bot.guilds.cache.find(g=>g.id==='845744837315133450')
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
-})
-bot.on('message',async (msg)=>{
+});
+bot.on('message',async(msg)=>{
 	if(msg.author.bot)return;
 	if(!msg.author.bot&&msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
@@ -296,6 +296,10 @@ bot.on('message',async (msg)=>{
 					msg.channel.bulkDelete(fetched)
 						.catch(error => msg.reply(`Couldn't delete messages because of: ${error}`));
 				break;
+				case"!reboot":
+					msg.reply("Будет выполнено!")
+					process.exit("reboot")
+				break;
 				default:
 					userCommands(msg)
 				break;
@@ -305,26 +309,26 @@ bot.on('message',async (msg)=>{
 		}
 	}else{
 		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id}`,(err,res)=>{
-			if(err)console.log(err)
+			if(err)console.log(err);
 			if(res.length!==0){
 				if(res[0].msgCount%res[0].divisor!==0){
 					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id}`,(err)=>{
-						if(err)console.log(err)
+						if(err)console.log(err);
 					})
 				}else{
-					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25,msg.author.id],(err)=>{
+					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
 						if(err) console.log(err);
 					})
 				}
 			}else{
 				connection.query(`INSERT INTO users(uID) VALUES ('${msg.author.id}')`,(err)=>{
-					if(err)console.log(err)
+					if(err)console.log(err);
 				})
 			}
 		})
 	}
-})
-bot.on("guildMemberAdd", mbr=>{
+});
+bot.on("guildMemberAdd",mbr=>{
 	/*
 	Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
 	Если оценка ниже определённого порога, то модеру и админской команде сообщается о его успеваниях.
@@ -374,8 +378,8 @@ bot.on("guildMemberAdd", mbr=>{
 			}
 		}
 	})
-})
-bot.on("voiceStateUpdate", (vc1,vc2)=>{
+});
+bot.on("voiceStateUpdate",(vc1,vc2)=>{
 	if(vc2.channelID==="847600018756337674"){
 		//TODO: задать вопрос про создание текстового канала и про дальнейшее его удаление
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
@@ -399,7 +403,7 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 						DMchat.send("Хотите ли вы создать текстовый канал?(да/нет)")
 						collector.on("collect", msg=>{
 
-							if(answ[msg.content.toLowerCase()]){
+							if(answer[msg.content.toLowerCase()]){//Шняга рабочая
 								sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s text_channel`,{
 									type:'text',
 									parent:sample.channels.cache.get('845745372814114846'),
@@ -434,6 +438,8 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 			}
 		}*/
 	}
-})
+});
 
-bot.login(cfg.token)
+bot.login(cfg.token);
+
+process.on('exit',code=>console.log(code));
