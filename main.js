@@ -310,6 +310,7 @@ bot.on('message',async(msg)=>{
 			userCommands(msg);
 		}
 	}else{
+		console.log(`${msg.author.id}-${msg.channel.name}:\n${msg.content}`)
 		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id}`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
