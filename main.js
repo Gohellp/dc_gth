@@ -2,7 +2,19 @@ const Discord = require('discord.js');
 const moment  = require('moment');
 const mysql   = require('mysql2');
 const cfg     = require('./config.json');
-const bot     = new Discord.Client();
+const bot     = new Discord.Client({
+	intents:
+		[
+			Discord.Intents.FLAGS.GUILDS,
+			Discord.Intents.FLAGS.GUILD_MEMBERS,
+			Discord.Intents.FLAGS.GUILD_MESSAGES,
+			Discord.Intents.FLAGS.DIRECT_MESSAGES,
+			Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
+			Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+			Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+		],
+	partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
+});
 
 const connection =mysql.createConnection({
 	host:cfg.dbHost,
@@ -11,35 +23,33 @@ const connection =mysql.createConnection({
 	password:cfg.dbPass
 });
 const adminRoles ={
-	0:"sample own",
-	1:"sample admin",
-	2:"sample mod",
-	3:"sample observer",
-	4:"sample bots"
-}
-const userRoles  ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
-	0:"sample newbie",
-	1:"sample user",
-	2:"sample junior"
-}
-const adminNums  ={
+	0:"sample_own",
+	1:"sample_admin",
+	2:"sample_mod",
+	3:"sample_observer",
+	4:"sample_bots"
+},
+	userRoles  ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
+	0:"sample_newbie",
+	1:"sample_user",
+	2:"sample_junior"
+},
+	adminNums  ={
 	"own"   :0,
 	"admin" :1,
 	"mod"   :2,
 	"obs"   :3,
 	"bot"   :4
-}
-const answer     ={
+},
+	answer     ={
 	"нет":false,
 	"yes":false,
 	"да":true,
 	"no":true,
-	"гы":"WTF"
 }
-
-let own;
-let sample;
-let admins=[];
+let own,
+	sample,
+	admins=[];
 
 function delChannel(ch,text){
 	ch.delete(text)
@@ -79,7 +89,8 @@ coming soon:D`
 		case"!report":
 			if(mess[1]&&mess[2]&&mess[3]){
 				mess.shift()
-				bot.channels.cache.find(ch=>ch.id==="852608455352909834").send(`Жалоба получена от <@${msg.author.id}>`)
+				bot.channels.cache.find(ch=>ch.id==="852608455352909834")//ID of log(?) channel
+					.send(`Жалоба получена от <@${msg.author.id}>`)
 					.then(message=>{
 						message.react('❌');message.react('✔');
 						const filter = (reaction, user) => {
@@ -114,7 +125,7 @@ coming soon:D`
 							}else{
 								connection.query(`select * from admin where uID = ${react.author.id}`,(err,res)=>{
 									if(err)console.log(err);
-									connection.query(`insert admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1})`,(err)=>{
+									connection.query(`insert into admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1})`,(err)=>{
 										if(err) return console.log(err)
 										console.log(`Фактор доверия ${react.author.id} был понижен из-за пренебрежительного отношения к боту.`)
 									})
@@ -153,7 +164,7 @@ bot.once('ready',()=>{
 			admins.push(it.uID)
 		})
 	})
-	sample=bot.guilds.cache.find(g=>g.id==='845744837315133450')
+	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//ID of guild
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
 bot.on('message',async(msg)=>{
@@ -171,7 +182,7 @@ bot.on('message',async(msg)=>{
 						switch(aMess[2]){
 							case"admin":
 								if(aMess[3]){
-									connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]})`,(err)=>{
+									connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]});`,(err)=>{
 										if(err)console.log(err);
 									})
 									msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[aMess[3]]]))
@@ -186,7 +197,7 @@ bot.on('message',async(msg)=>{
 									})
 									msg.reply("own|admin|mod|obs|bot")
 									col.on("collect",n => {
-										connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]})`,(err)=>{
+										connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err)=>{
 											if(err)console.log(err);
 										})
 										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
@@ -211,7 +222,7 @@ bot.on('message',async(msg)=>{
 									})
 									if(msg.mentions.members.id){
 										if(m.content[1]){
-											connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
+											connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
 												if(err) console.log(err);
 											})
 											msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[m.content]]))
@@ -222,7 +233,7 @@ bot.on('message',async(msg)=>{
 												time:3600000
 											})
 											col.on("collect",n => {
-												connection.query(`INSERT admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]}) `,(err) => {
+												connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err) => {
 													if(err) console.log(err);
 												})
 												msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[n.content]]))
@@ -296,12 +307,6 @@ bot.on('message',async(msg)=>{
 					msg.channel.bulkDelete(fetched)
 						.catch(error => msg.reply(`Couldn't delete messages because of: ${error}`));
 				break;
-				case"!reboot":
-					msg.reply("Будет выполнено!")
-						.then(()=>{
-							process.exit("reboot")
-						})
-				break;
 				default:
 					userCommands(msg)
 				break;
@@ -331,7 +336,7 @@ bot.on('message',async(msg)=>{
 		})
 	}
 });
-bot.on("guildMemberAdd",mbr=>{
+bot.on('guildMemberAdd',mbr=>{
 	/*
 	Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
 	Если оценка ниже определённого порога, то модеру и админской команде сообщается о его успеваниях.
@@ -345,11 +350,11 @@ bot.on("guildMemberAdd",mbr=>{
 			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0)`, (err)=>{
 				if(err)console.log(err);
 			});
-			mbr.roles.add(sample.roles.cache.get("846738135798251540"))
+			mbr.roles.add(sample.roles.cache.get("846738135798251540"))//Newbie's role
 			if(!bot.channels.cache.find(ch=>ch.name==="for strangers")){
 				sample.channels.create(`for strangers`,{
 					type:'voice',
-					parent:sample.channels.cache.get('846476470565077062'),
+					parent:sample.channels.cache.get('897986118954414100'),//ID of category
 					permissionOverwrites:[
 						{
 							id:'845744837315133450',
@@ -365,11 +370,13 @@ bot.on("guildMemberAdd",mbr=>{
 						setTimeout(delChannel,300000,sample.channels.cache.find(c=>c.id===vch.id),"Deleted by time")//300000
 					})
 			}
-			bot.channels.cache.find(ch=>ch.name==="sample-starting").send(`<@${mbr.id}> был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
+			bot.channels.cache.find(ch=>ch.name==="sample_starting")//name of start channel
+				.send(`<@${mbr.id}> был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
 		}else{
 			if(res[0].banned){
 				mbr.kick("Banned status");
-				bot.channels.cache.find(ch=>ch.name==="sample-logs").send(`Супостат ${mbr.name} не смог проникнуть на нашу святую землю!!!`);
+				bot.channels.cache.find(ch=>ch.name==="sample_logs")//name of log channel
+					.send(`Супостат ${mbr.name} не смог проникнуть на нашу святую землю!!!`);
 			}else{
 				if(res[0].trust_factor>150){
 					mbr.createDM().then(dm => {
@@ -382,12 +389,11 @@ bot.on("guildMemberAdd",mbr=>{
 		}
 	})
 });
-bot.on("voiceStateUpdate",(vc1,vc2)=>{
-	if(vc2.channelID==="847600018756337674"){
-		//TODO: задать вопрос про создание текстового канала и про дальнейшее его удаление
+bot.on('voiceStateUpdate',(vc1,vc2)=>{
+	if(vc2.channelID==="897986118954414103"){
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'voice',
-			parent:sample.channels.cache.get('845745372814114846'),
+			parent:sample.channels.cache.get('897986118954414101'),//ID of voice category
 			permissionOverwrites:[
 				{
 					id: vc2.id,
@@ -397,19 +403,21 @@ bot.on("voiceStateUpdate",(vc1,vc2)=>{
 		})
 			.then(ch=>{
 				vc2.setChannel(ch)
-				sample.members.cache.find(m=>m.id===vc2.id).createDM()
+				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id})`,err => {
+					if(err)console.log(err)
+				})
+				/*sample.members.cache.find(m=>m.id===vc2.id).createDM()
 					.then(DMchat=>{
-						DMchat.send(`Не забудьте убрать за собой после игры!`)
-						/*const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
+						const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
 							time:120000,
 						})
-						DMchat.send("Хотите ли вы создать текстовый канал?(да/нет)")
+						DMchat.send("Хотите ли вы создать текстовый канал?(да|нет)")
 						collector.on("collect", msg=>{
 
 							if(answer[msg.content.toLowerCase()]){//Шняга рабочая
 								sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s text_channel`,{
 									type:'text',
-									parent:sample.channels.cache.get('845745372814114846'),
+									parent:sample.channels.cache.get('845745372814114846'),//ID of voice category
 									permissionOverwrites:[
 										{
 											id: msg.author.id,
@@ -421,27 +429,45 @@ bot.on("voiceStateUpdate",(vc1,vc2)=>{
 										}
 									]
 								})
-							}else if("WTF"){
-								DMchat.send("Гыыыыыыы")//TODO: сделать attach с записаным ГЫЫЫЫЫЫЫЫ XD (насколько ж мне нечем заняться:D)
 							}else{
-								DMchat.send("Хотите ли вы, чтобы я задавал этот вопрос в дальнейшем?(yes|no|гы)")
+								DMchat.send("Хотите ли вы, чтобы я задавал этот вопрос в дальнейшем?(да|нет)")
 								//TODO: Создать коллектор внутри коллектора дабы проверить
 								collector.stop("No one reason to be here")
 							}
-						})*/
-					})
+						})
+					})*/
 			})
 	}else{
-		//TODO: проверка БД на владельца канала
-		/*if((vc1.channelID!=="847600018756337674")&&(vc1.channelID!=="847601022066360351")){
-			try{
-				sample.channels.cache.get(vc1.channelID).delete()
-			}catch(e){
-				console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
+		connection.query('SELECT ownID FROM voices WHERE voiceID=?',[vc1.channelID],(err,ownID_)=>{
+			if(err)console.log(err)
+			if(ownID_[0])
+			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
+				try{
+					sample.channels.cache.get(vc1.channelID).delete()
+						.then(()=>{
+							connection.query('DELETE FROM voices WHERE ownID=?',[vc1.id],err1 => {
+								if(err)console.log(err)
+							})
+					})
+				}catch(e){
+					console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
+					//TODO: логгирование в чат sample_logs
+				}
 			}
-		}*/
+		})
 	}
 });
+bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирование на покидание сервера
+	let rolesID=[];
+	newMbr.roles.cache.forEach(role=>{
+		rolesID.push(role.id)
+	})
+	if(rolesID){
+		connection.query('UPDATE users SET roles=? WHERE uID=?', [rolesID.join("$"), newMbr.id], err => {
+			if (err) console.log(err)
+		})
+	}
+})
 
 bot.login(cfg.token);
 
