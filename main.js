@@ -9,8 +9,6 @@ const bot     = new Discord.Client({
 			Discord.Intents.FLAGS.GUILD_MEMBERS,
 			Discord.Intents.FLAGS.GUILD_MESSAGES,
 			Discord.Intents.FLAGS.DIRECT_MESSAGES,
-			Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-			Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
 			Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
 		],
 	partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
@@ -167,7 +165,7 @@ bot.once('ready',()=>{
 	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//ID of guild
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
-bot.on('message',async(msg)=>{
+bot.on('messageCreate',async(msg)=>{
 	if(msg.author.bot)return;
 	if(!msg.author.bot&&msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
@@ -175,7 +173,7 @@ bot.on('message',async(msg)=>{
 			switch(aMess[0]){
 				case"!add":
 					if(!msg.mentions.members){
-						msg.reply("Вы не упомянули пользователя, с которым хотите провести операцию")
+						msg.reply("Вы не упомянули пользователя, с которым хотите провести опеfрацию")
 						return;
 					}
 					if(aMess[2]){
