@@ -68,7 +68,7 @@ function userCommands(msg){
 			}else{
 				switch(mess[1]){
 					case"admin":
-						connection.query(`SELECT * FROM admin WHERE uID = ${msg.author.id}`,(err,res)=>{
+						connection.query(`SELECT * FROM admin WHERE uID = ${msg.author.id};`,(err,res)=>{
 							if(res.length!==0){
 								msg.reply(
 `Here is all admins commands:
@@ -121,9 +121,9 @@ coming soon:D`
 										})
 									})
 							}else{
-								connection.query(`select * from admin where uID = ${react.author.id}`,(err,res)=>{
+								connection.query(`select * from admin where uID = ${react.author.id};`,(err,res)=>{
 									if(err)console.log(err);
-									connection.query(`insert into admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1})`,(err)=>{
+									connection.query(`insert into admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1});`,(err)=>{
 										if(err) return console.log(err)
 										console.log(`Фактор доверия ${react.author.id} был понижен из-за пренебрежительного отношения к боту.`)
 									})
@@ -260,7 +260,7 @@ bot.on('messageCreate',async(msg)=>{
 									if(err) console.log(err);
 									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
 								})
-								connection.query("DELETE FROM admin WHERE uID=?", msg.mentions.members.first().id,(err)=>{
+								connection.query("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
 									if(err)console.log(err);
 								})
 								msg.reply("Пользователь успешно убран с поста.")
@@ -279,7 +279,7 @@ bot.on('messageCreate',async(msg)=>{
 							switch(m.content){
 								case"admin":
 									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
-									connection.query("DELETE FROM admin WHERE uID=?", msg.mentions.members.first().id,(err)=>{
+									connection.query("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
 										if(err)console.log(err);
 									})
 									msg.reply("Пользователь успешно убран с поста.")
@@ -314,20 +314,20 @@ bot.on('messageCreate',async(msg)=>{
 		}
 	}else{
 		console.log(`${msg.author.id}-${msg.channel.name}:\n${msg.content}`)
-		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id}`,(err,res)=>{
+		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
 				if(res[0].msgCount%res[0].divisor!==0){
-					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id}`,(err)=>{
+					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id};`,(err)=>{
 						if(err)console.log(err);
 					})
 				}else{
-					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
+					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?;',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
 						if(err) console.log(err);
 					})
 				}
 			}else{
-				connection.query(`INSERT INTO users(uID) VALUES ('${msg.author.id}')`,(err)=>{
+				connection.query(`INSERT INTO users(uID) VALUES ('${msg.author.id}');`,(err)=>{
 					if(err)console.log(err);
 				})
 			}
@@ -342,10 +342,10 @@ bot.on('guildMemberAdd',mbr=>{
 	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
 	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
-	connection.query(`SELECT * FROM users WHERE uID = '${mbr.id}'`, (err,res)=>{
+	connection.query(`SELECT * FROM users WHERE uID = '${mbr.id}';`, (err,res)=>{
 		if(err)console.log(err);
 		if(res.length===0){
-			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0)`, (err)=>{
+			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
 				if(err)console.log(err);
 			});
 			mbr.roles.add(sample.roles.cache.get("846738135798251540"))//Newbie's role
@@ -376,6 +376,9 @@ bot.on('guildMemberAdd',mbr=>{
 				bot.channels.cache.find(ch=>ch.name==="sample_logs")//name of log channel
 					.send(`Супостат ${mbr.name} не смог проникнуть на нашу святую землю!!!`);
 			}else{
+				if(res[0].roles){
+					mbr.roles.add(res[0].roles.split('$'))
+				}
 				if(res[0].trust_factor>150){
 					mbr.createDM().then(dm => {
 						dm.send("Мне было скучно без Вас:(")
@@ -401,7 +404,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 		})
 			.then(ch=>{
 				vc2.setChannel(ch)
-				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id})`,err => {
+				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
 					if(err)console.log(err)
 				})
 				/*sample.members.cache.find(m=>m.id===vc2.id).createDM()
@@ -436,14 +439,14 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					})*/
 			})
 	}else{
-		connection.query('SELECT ownID FROM voices WHERE voiceID=?',[vc1.channelID],(err,ownID_)=>{
+		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelID],(err,ownID_)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
 			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
 				try{
 					sample.channels.cache.get(vc1.channelID).delete()
 						.then(()=>{
-							connection.query('DELETE FROM voices WHERE ownID=?',[vc1.id],err1 => {
+							connection.query('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
 								if(err)console.log(err)
 							})
 					})
@@ -461,10 +464,19 @@ bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирова
 		rolesID.push(role.id)
 	})
 	if(rolesID){
-		connection.query('UPDATE users SET roles=? WHERE uID=?', [rolesID.join("$"), newMbr.id], err => {
+		connection.query('UPDATE users SET roles=? WHERE uID=?;', [rolesID.join('$'), newMbr.id], err => {
 			if (err) console.log(err)
 		})
 	}
+})
+bot.on('guildMemberRemove', mbr=>{
+	connection.query('SELECT leaving FROM users WHERE uID=?;',[mbr.id],(err, result) => {
+		if(err)console.log(err);
+		connection.query('UPDATE users SET leaving=? WHERE uID=?;',[result[0].leaving+1,mbr.id],err1 => {
+			if(err1)console.log(err1);
+		})
+	})
+
 })
 
 bot.login(cfg.token);
