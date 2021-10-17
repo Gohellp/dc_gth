@@ -442,7 +442,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 						})
 					})*/
 			})
-	}else{
+	}else if(vc2.channelId!==vc1.channelId){
 		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
@@ -451,7 +451,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					sample.channels.cache.get(vc1.channelId).delete()
 						.then(()=>{
 							connection.query('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
-								if(err)console.log(err)
+								if(err1)console.log(err1)
 							})
 					})
 				}catch(e){
