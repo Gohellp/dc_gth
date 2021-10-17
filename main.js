@@ -351,8 +351,8 @@ bot.on('guildMemberAdd',mbr=>{
 			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
 				if(err)console.log(err);
 			});
-			mbr.roles.add(sample.roles.cache.get("846738135798251540"))//Newbie's role
-			if(!bot.channels.cache.find(ch=>ch.name==="for strangers")){
+			mbr.roles.add(sample.roles.cache.get("898339903417483285"))//должна быть newbie's role
+			/*if(!bot.channels.cache.find(ch=>ch.name==="for strangers")){
 				sample.channels.create(`for strangers`,{
 					type:'GUILD_VOICE',
 					parent:sample.channels.cache.get('897986118954414100'),//ID of category
@@ -372,7 +372,7 @@ bot.on('guildMemberAdd',mbr=>{
 					})
 			}
 			bot.channels.cache.find(ch=>ch.name==="sample_starting")//name of start channel
-				.send(`<@${mbr.id}> был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);
+				.send(`<@${mbr.id}> был создан голосовой чат "for strangers". Прошу зайти туда и Вам наш человек расскажет про жизнь на сервере!\nЭтот войс был создан на 30 мин, будьте быстры!:D`);*/
 		}else{
 			if(res[0].banned){
 				mbr.kick("Banned status");
