@@ -1,7 +1,7 @@
-const Discord = require('discord.js');
+const Discord = require("discord.js");
 const moment  = require('moment');
 const mysql   = require('mysql2');
-const cfg     = require('./config.json');
+const cfg     = require('./config.json')
 const bot     = new Discord.Client({
 	intents:
 		[
@@ -9,6 +9,9 @@ const bot     = new Discord.Client({
 			Discord.Intents.FLAGS.GUILD_MEMBERS,
 			Discord.Intents.FLAGS.GUILD_MESSAGES,
 			Discord.Intents.FLAGS.DIRECT_MESSAGES,
+			Discord.Intents.FLAGS.GUILD_VOICE_STATES,
+			Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
+			Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
 			Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
 		],
 	partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
@@ -165,7 +168,7 @@ bot.once('ready',()=>{
 	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//ID of guild
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
-bot.on('messageCreate',async(msg)=>{
+bot.on('messageCreate',(msg)=>{
 	if(msg.author.bot)return;
 	if(!msg.author.bot&&msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
@@ -173,7 +176,7 @@ bot.on('messageCreate',async(msg)=>{
 			switch(aMess[0]){
 				case"!add":
 					if(!msg.mentions.members){
-						msg.reply("Вы не упомянули пользователя, с которым хотите провести опеfрацию")
+						msg.reply("Вы не упомянули пользователя, с которым хотите провести операцию")
 						return;
 					}
 					if(aMess[2]){
@@ -299,7 +302,7 @@ bot.on('messageCreate',async(msg)=>{
 					if (!deleteCount || deleteCount < 2 || deleteCount > 100)
 						return msg.reply('Please provide a number between 2 and 100 for the number of messages to delete');
 
-					const fetched = await msg.channel.messages.fetch({
+					const fetched = msg.channel.messages.fetch({
 						limit: deleteCount,
 					});
 					msg.channel.bulkDelete(fetched)
@@ -351,15 +354,15 @@ bot.on('guildMemberAdd',mbr=>{
 			mbr.roles.add(sample.roles.cache.get("846738135798251540"))//Newbie's role
 			if(!bot.channels.cache.find(ch=>ch.name==="for strangers")){
 				sample.channels.create(`for strangers`,{
-					type:'voice',
+					type:'GUILD_VOICE',
 					parent:sample.channels.cache.get('897986118954414100'),//ID of category
 					permissionOverwrites:[
 						{
-							id:'845744837315133450',
+							id:'897986118077788221',
 							deny:['VIEW_CHANNEL']
 						},
 						{
-							id:'846738135798251540',
+							id:'897986447896895488',
 							allow:['VIEW_CHANNEL']
 						}
 					]
@@ -391,9 +394,9 @@ bot.on('guildMemberAdd',mbr=>{
 	})
 });
 bot.on('voiceStateUpdate',(vc1,vc2)=>{
-	if(vc2.channelID==="897986118954414103"){
+	if(vc2.channelId==="897986118954414103"){
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
-			type:'voice',
+			type:'GUILD_VOICE',
 			parent:sample.channels.cache.get('897986118954414101'),//ID of voice category
 			permissionOverwrites:[
 				{
@@ -407,6 +410,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
 					if(err)console.log(err)
 				})
+				//TODO: записывать айди текстового канала в бд
 				/*sample.members.cache.find(m=>m.id===vc2.id).createDM()
 					.then(DMchat=>{
 						const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
@@ -417,7 +421,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 
 							if(answer[msg.content.toLowerCase()]){//Шняга рабочая
 								sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s text_channel`,{
-									type:'text',
+									type:'GUILD_TEXT',
 									parent:sample.channels.cache.get('845745372814114846'),//ID of voice category
 									permissionOverwrites:[
 										{
@@ -439,12 +443,12 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					})*/
 			})
 	}else{
-		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelID],(err,ownID_)=>{
+		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
 			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
 				try{
-					sample.channels.cache.get(vc1.channelID).delete()
+					sample.channels.cache.get(vc1.channelId).delete()
 						.then(()=>{
 							connection.query('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
 								if(err)console.log(err)
