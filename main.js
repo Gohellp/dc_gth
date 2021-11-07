@@ -1,8 +1,8 @@
-const Discord = require("discord.js");
-const moment  = require('moment');
-const mysql   = require('mysql2');
-const cfg     = require('./config.json')
-const bot     = new Discord.Client({
+const Discord = require("discord.js"),
+	moment    = require('moment'),
+	mysql     = require('mysql2'),
+	cfg       = require('./config.json'),
+	bot       = new Discord.Client({
 	intents:
 		[
 			Discord.Intents.FLAGS.GUILDS,
@@ -17,12 +17,6 @@ const bot     = new Discord.Client({
 	partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
 });
 
-const connection =mysql.createConnection({
-	host:cfg.dbHost,
-	user:cfg.dbLogin,
-	database:"gth_db",
-	password:cfg.dbPass
-});
 const adminRoles ={
 	0:"sample_own",
 	1:"sample_admin",
@@ -30,31 +24,28 @@ const adminRoles ={
 	3:"sample_observer",
 	4:"sample_bots"
 },
-	userRoles  ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
+	userRoles ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
 	0:"sample_newbie",
 	1:"sample_user",
 	2:"sample_junior"
 },
-	adminNums  ={
+	adminNums ={
 	"own"   :0,
 	"admin" :1,
 	"mod"   :2,
 	"obs"   :3,
 	"bot"   :4
 },
-	answer     ={
+	answer ={
 	"нет":false,
 	"yes":false,
 	"да":true,
 	"no":true,
-}
+};
 let own,
 	sample,
 	admins=[];
 
-function delChannel(ch,text){
-	ch.delete(text)
-}
 function userCommands(msg){
 	let mess=msg.content.split(" ")
 	mess[0]=mess[0].toLowerCase()
@@ -71,7 +62,7 @@ function userCommands(msg){
 			}else{
 				switch(mess[1]){
 					case"admin":
-						connection.query(`SELECT * FROM admin WHERE uID = ${msg.author.id};`,(err,res)=>{
+						connectionDB(`SELECT * FROM admin WHERE uID = ${msg.author.id};`,(err,res)=>{
 							if(res.length!==0){
 								msg.reply(
 `Here is all admins commands:
@@ -124,9 +115,9 @@ coming soon:D`
 										})
 									})
 							}else{
-								connection.query(`select * from admin where uID = ${react.author.id};`,(err,res)=>{
+								connectionDB(`SELECT * FROM admin WHERE uID = ${react.author.id};`,(err,res)=>{
 									if(err)console.log(err);
-									connection.query(`insert into admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1});`,(err)=>{
+									connectionDB(`INSERT INTO admin(trust_factor, violations) VALUES(${res.trust_factor-100}, ${res.violations+1});`,(err)=>{
 										if(err) return console.log(err)
 										console.log(`Фактор доверия ${react.author.id} был понижен из-за пренебрежительного отношения к боту.`)
 									})
@@ -158,9 +149,21 @@ TODO: отправка репортов с возможностью соглас
 		break;
 	}
 }
+function connectionDB(query,callback){
+	const connection = mysql.createConnection({
+		host:cfg.dbHost,
+		user:cfg.dbLogin,
+		database:"gth_db",
+		password:cfg.dbPass
+	});
+	connection.query(query,(err,res)=>{
+		callback(err,res);
+	})
+	connection.end();
+}
 
 bot.once('ready',()=>{
-	connection.query('SELECT uID from admin;', (err,data)=>{
+	connectionDB('SELECT uID FROM admin;', (err,data)=>{
 		data.forEach(it=>{
 			admins.push(it.uID)
 		})
@@ -170,7 +173,7 @@ bot.once('ready',()=>{
 });
 bot.on('messageCreate',(msg)=>{
 	if(msg.author.bot)return;
-	if(!msg.author.bot&&msg.content.startsWith("!")){
+	if(msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
 			let aMess=msg.content.toLowerCase().split(" ")
 			switch(aMess[0]){
@@ -183,13 +186,13 @@ bot.on('messageCreate',(msg)=>{
 						switch(aMess[2]){
 							case"admin":
 								if(aMess[3]){
-									connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]});`,(err)=>{
+									connectionDB(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]});`,(err)=>{
 										if(err)console.log(err);
 									})
 									msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[aMess[3]]]))
 									msg.reply("Пользователь успешно поставлен на пост!")
 								}else{
-									connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
+									connectionDB("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
 										if(err) console.log(err);
 										own=res[0].uID;
 									})
@@ -198,7 +201,7 @@ bot.on('messageCreate',(msg)=>{
 									})
 									msg.reply("own|admin|mod|obs|bot")
 									col.on("collect",n => {
-										connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err)=>{
+										connectionDB(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err)=>{
 											if(err)console.log(err);
 										})
 										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
@@ -217,13 +220,13 @@ bot.on('messageCreate',(msg)=>{
 							m.content=m.content.split(" ")
 							switch(m.content[0]){
 								case"admin":
-									connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
+									connectionDB("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
 										if(err) console.log(err);
 										own=res[0].uID;
 									})
 									if(msg.mentions.members.id){
 										if(m.content[1]){
-											connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
+											connectionDB(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
 												if(err) console.log(err);
 											})
 											msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[m.content]]))
@@ -234,7 +237,7 @@ bot.on('messageCreate',(msg)=>{
 												time:3600000
 											})
 											col.on("collect",n => {
-												connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err) => {
+												connectionDB(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err) => {
 													if(err) console.log(err);
 												})
 												msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[n.content]]))
@@ -259,18 +262,18 @@ bot.on('messageCreate',(msg)=>{
 					if(aMess[2]){
 						switch(aMess[2]){
 							case"admin":
-								connection.query(`SELECT perm FROM admin WHERE uID = ${msg.mentions.members.first().id};`, (err,res)=>{
+								connectionDB(`SELECT perm FROM admin WHERE uID = ${msg.mentions.members.first().id};`, (err,res)=>{
 									if(err) console.log(err);
 									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
 								})
-								connection.query("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
+								connectionDB("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
 									if(err)console.log(err);
 								})
 								msg.reply("Пользователь успешно убран с поста.")
 							break;
 						}
 					}else{
-						connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
+						connectionDB("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
 							if(err) console.log(err);
 							own=res[0].uID;
 						})
@@ -282,7 +285,7 @@ bot.on('messageCreate',(msg)=>{
 							switch(m.content){
 								case"admin":
 									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
-									connection.query("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
+									connectionDB("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
 										if(err)console.log(err);
 									})
 									msg.reply("Пользователь успешно убран с поста.")
@@ -302,10 +305,7 @@ bot.on('messageCreate',(msg)=>{
 					if (!deleteCount || deleteCount < 2 || deleteCount > 100)
 						return msg.reply('Please provide a number between 2 and 100 for the number of messages to delete');
 
-					const fetched = msg.channel.messages.fetch({
-						limit: deleteCount,
-					});
-					msg.channel.bulkDelete(fetched)
+					msg.channel.bulkDelete(deleteCount)
 						.catch(error => msg.reply(`Couldn't delete messages because of: ${error}`));
 				break;
 				default:
@@ -316,21 +316,24 @@ bot.on('messageCreate',(msg)=>{
 			userCommands(msg);
 		}
 	}else{
-		console.log(`${msg.author.id}-${msg.channel.name}:\n${msg.content}`)
-		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id};`,(err,res)=>{
+		sample.members.fetch(msg.author.id)
+			.then(member=>{
+				console.log(`\x1b[35m [${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tusername:\x1b[0m ${msg.author.username}\x1b[34m\n\tnickname:\x1b[0m ${member.nickname}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}${msg.content?'\x1b[34m\n\ttext:\x1b[0m >'+msg.content.split('\n').join(" ")+'<':''}`)// ${atch.join(",")?'\x1b[34m\n	atch:\x1b[0m '+atch.join(","):''}
+			})
+		connectionDB(`SELECT * FROM users WHERE uID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
 				if(res[0].msgCount%res[0].divisor!==0){
-					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id};`,(err)=>{
+					connectionDB(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id};`,(err,res)=>{
 						if(err)console.log(err);
 					})
 				}else{
-					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?;',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
+					connectionDB('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?;',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err,res)=>{
 						if(err) console.log(err);
 					})
 				}
 			}else{
-				connection.query(`INSERT INTO users(uID) VALUES ('${msg.author.id}');`,(err)=>{
+				connectionDB(`INSERT INTO users(uID) VALUES ('${msg.author.id}');`,(err,res)=>{
 					if(err)console.log(err);
 				})
 			}
@@ -345,10 +348,10 @@ bot.on('guildMemberAdd',mbr=>{
 	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
 	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
-	connection.query(`SELECT * FROM users WHERE uID = '${mbr.id}';`, (err,res)=>{
+	connectionDB(`SELECT * FROM users WHERE uID = '${mbr.id}';`, (err,res)=>{
 		if(err)console.log(err);
 		if(res.length===0){
-			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
+			connectionDB(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
 				if(err)console.log(err);
 			});
 			mbr.roles.add(sample.roles.cache.get("898339903417483285"))//должна быть newbie's role
@@ -407,7 +410,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 		})
 			.then(ch=>{
 				vc2.setChannel(ch)
-				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
+				connectionDB(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
 					if(err)console.log(err)
 				})
 				//TODO: записывать айди текстового канала в бд
@@ -443,14 +446,14 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					})*/
 			})
 	}else if(vc2.channelId!==vc1.channelId){
-		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
+		connectionDB('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
 			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
 				try{
 					sample.channels.cache.get(vc1.channelId).delete()
 						.then(()=>{
-							connection.query('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
+							connectionDB('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
 								if(err1)console.log(err1)
 							})
 					})
@@ -468,21 +471,21 @@ bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирова
 		rolesID.push(role.id)
 	})
 	if(rolesID){
-		connection.query('UPDATE users SET roles=? WHERE uID=?;', [rolesID.join('$'), newMbr.id], err => {
+		connectionDB('UPDATE users SET roles=? WHERE uID=?;', [rolesID.join('$'), newMbr.id], err => {
 			if (err) console.log(err)
 		})
 	}
-})
+});
 bot.on('guildMemberRemove', mbr=>{
-	connection.query('SELECT leaving FROM users WHERE uID=?;',[mbr.id],(err, result) => {
+	connectionDB('SELECT leaving FROM users WHERE uID=?;',[mbr.id],(err, result) => {
 		if(err)console.log(err);
-		connection.query('UPDATE users SET leaving=? WHERE uID=?;',[result[0].leaving+1,mbr.id],err1 => {
+		connectionDB('UPDATE users SET leaving=? WHERE uID=?;',[result[0].leaving+1,mbr.id],err1 => {
 			if(err1)console.log(err1);
 		})
 	})
 
-})
+});
 
 bot.login(cfg.token);
 
-process.on('exit',code=>console.log(code));
+process.on('exit',code=>console.log(code+`\n${moment().format('HH:mm:ss')}`));
