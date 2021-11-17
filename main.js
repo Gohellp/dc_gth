@@ -150,7 +150,7 @@ TODO: отправка репортов с возможностью соглас
 	}
 }
 function connectionDB(query,callback){
-	const connection = mysql.createConnection({
+	let connection = mysql.createConnection({
 		host:cfg.dbHost,
 		user:cfg.dbLogin,
 		database:"gth_db",
