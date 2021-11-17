@@ -156,6 +156,7 @@ function connectionDB(query,callback){
 		database:"gth_db",
 		password:cfg.dbPass
 	});
+	console.log(moment().format('HH:mm:ss'))
 	connection.query(query,(err,res)=>{
 		callback(err,res);
 	})
