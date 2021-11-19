@@ -156,7 +156,7 @@ function connectionDB(query,callback){
 		database:"gth_db",
 		password:cfg.dbPass
 	});
-	console.log(moment().format('HH:mm:ss'))
+	console.log("DB request at: "+moment().format('HH:mm:ss'))
 	connection.query(query,(err,res)=>{
 		callback(err,res);
 	})
@@ -489,4 +489,4 @@ bot.on('guildMemberRemove', mbr=>{
 
 bot.login(cfg.token);
 
-process.on('exit',code=>console.log(code+`\n${moment().format('HH:mm:ss')}`));
+process.on('exit',code=>console.log(`End code: `+code+` ${moment().format('HH:mm:ss')}`));
