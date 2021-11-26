@@ -149,7 +149,7 @@ TODO: отправка репортов с возможностью соглас
 		break;
 	}
 }
-function connectionDB(query,callback){
+function connectionDB(query,callback_){
 	let connection = mysql.createConnection({
 		host:cfg.dbHost,
 		user:cfg.dbLogin,
@@ -158,7 +158,7 @@ function connectionDB(query,callback){
 	});
 	console.log("DB request at: "+moment().format('HH:mm:ss'))
 	connection.query(query,(err,res)=>{
-		callback(err,res);
+		callback_(err,res);
 	})
 	connection.end();
 }
@@ -454,7 +454,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 				try{
 					sample.channels.cache.get(vc1.channelId).delete()
 						.then(()=>{
-							connectionDB('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
+							connectionDB('DELETE FROM voices WHERE ownID=?;',[vc1.id],(err1) => {
 								if(err1)console.log(err1)
 							})
 					})
