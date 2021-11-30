@@ -158,6 +158,9 @@ TODO: отправка репортов с возможностью соглас
 		break;
 	}
 }
+function checkMuted(){
+	connection.query("")
+}
 
 bot.once('ready',()=>{
 	connection.query('SELECT uID from admin;', (err,data)=>{
