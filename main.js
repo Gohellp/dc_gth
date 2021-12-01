@@ -336,7 +336,7 @@ bot.on('messageCreate',(msg)=>{
 			userCommands(msg);
 		}
 	}else{
-		console.log(`${msg.author.id}-${msg.channel.name}:\n${msg.content}`)
+		console.log(`${msg.author.id}-${msg.channel.name}:\n>${msg.content}<`)
 		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
@@ -367,6 +367,7 @@ bot.on('guildMemberAdd',mbr=>{
 	*/
 	connection.query(`SELECT * FROM users WHERE uID = '${mbr.id}';`, (err,res)=>{
 		if(err)console.log(err);
+		if(mbr.user.bot)return;
 		if(res.length===0){
 			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
 				if(err)console.log(err);
