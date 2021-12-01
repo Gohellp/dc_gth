@@ -23,6 +23,12 @@ const connection =mysql.createConnection({
 	database:"gth_db",
 	password:cfg.dbPass
 });
+connection.query('SELECT uID from admin;',(err,data)=>{
+	data.forEach(it=>{
+		admins.push(it.uID)
+	})
+})
+
 const adminRoles ={
 	0:"sample_own",
 	1:"sample_admin",
@@ -159,15 +165,26 @@ TODO: отправка репортов с возможностью соглас
 	}
 }
 function checkMuted(){
-	connection.query("")
+	connection.query("SELECT * FROM mutedPPL;", (err,data)=>{
+		if(err)console.log(err)
+		data.forEach(it=>{
+			if(Number(it.endMute)<Date.now()){
+				sample.members.cache.get(it.uID).roles.remove(mute,`End of mute`)
+					.then(mbr=>{
+						if(it.roles.split("$")){
+							mbr.roles.add(it.roles.split("$"))
+						}
+						mbr.user.createDM()
+							.then(dm=>dm.send("```Your mute is over.\nAll privileges have been restored.```"))
+						connection.query("DELETE FROM mute WHERE uID=?",it.uID)
+					})
+			}
+		})
+	})
 }
 
 bot.once('ready',()=>{
-	connection.query('SELECT uID from admin;', (err,data)=>{
-		data.forEach(it=>{
-			admins.push(it.uID)
-		})
-	})
+	setInterval(checkMuted,5000)
 	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//ID of guild
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
