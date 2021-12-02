@@ -529,7 +529,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирование на покидание сервера
 	let rolesID=[];
 	newMbr.roles.cache.forEach(role=>{
-		rolesID.push(role.id)
+		if(role.id!=="897986118077788221")rolesID.push(role.id);
 	})
 	if(rolesID){
 		connection.query('UPDATE users SET roles=? WHERE userID=?;', [rolesID.join('$'), newMbr.id], err => {
