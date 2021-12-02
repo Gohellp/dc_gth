@@ -408,6 +408,7 @@ bot.on('guildMemberAdd',mbr=>{
 	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
 	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
+	if(mbr.bot)return;
 	connection.query(`SELECT * FROM users WHERE userID = '${mbr.id}';`, (err,res)=>{
 		if(err)console.log(err);
 		if(mbr.user.bot)return;
@@ -528,6 +529,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 });
 bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирование на покидание сервера
 	let rolesID=[];
+	if(newMbr.bot)return;
 	newMbr.roles.cache.forEach(role=>{
 		if(role.id!=="897986118077788221")rolesID.push(role.id);
 	})
