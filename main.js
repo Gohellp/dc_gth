@@ -23,9 +23,9 @@ const connection =mysql.createConnection({
 	database:"gth_db",
 	password:cfg.dbPass
 });
-connection.query('SELECT uID from admin;',(err,data)=>{
+connection.query('SELECT userID from admin;',(err,data)=>{
 	data.forEach(it=>{
-		admins.push(it.uID)
+		admins.push(it.userID)
 	})
 })
 
@@ -55,6 +55,7 @@ const adminRoles ={
 	"no":true,
 }
 let own,
+	mute,
 	sample,
 	admins=[];
 
@@ -77,7 +78,7 @@ function userCommands(msg){
 			}else{
 				switch(mess[1]){
 					case"admin":
-						connection.query(`SELECT * FROM admin WHERE uID = ${msg.author.id};`,(err,res)=>{
+						connection.query(`SELECT * FROM admin WHERE userID = ${msg.author.id};`,(err,res)=>{
 							if(res.length!==0){
 								msg.reply(
 `Here is all admins commands:
@@ -130,7 +131,7 @@ coming soon:D`
 										})
 									})
 							}else{
-								connection.query(`select * from admin where uID = ${react.author.id};`,(err,res)=>{
+								connection.query(`select * from admin where userID = ${react.author.id};`,(err,res)=>{
 									if(err)console.log(err);
 									connection.query(`insert into admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1});`,(err)=>{
 										if(err) return console.log(err)
@@ -169,14 +170,14 @@ function checkMuted(){
 		if(err)console.log(err)
 		data.forEach(it=>{
 			if(Number(it.endMute)<Date.now()){
-				sample.members.cache.get(it.uID).roles.remove(mute,`End of mute`)
+				sample.members.cache.get(it.userID).roles.remove(mute,`End of mute`)
 					.then(mbr=>{
 						if(it.roles.split("$")){
 							mbr.roles.add(it.roles.split("$"))
 						}
 						mbr.user.createDM()
 							.then(dm=>dm.send("```Your mute is over.\nAll privileges have been restored.```"))
-						connection.query("DELETE FROM mute WHERE uID=?",it.uID)
+						connection.query("DELETE FROM mute WHERE userID=?",it.userID)
 					})
 			}
 		})
@@ -185,7 +186,8 @@ function checkMuted(){
 
 bot.once('ready',()=>{
 	setInterval(checkMuted,5000)
-	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//ID of guild
+	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//Guild
+	mute=sample.roles.cache.find(r=>r.name==="sample_muted")//Mute role
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
 bot.on('messageCreate',(msg)=>{
@@ -203,22 +205,22 @@ bot.on('messageCreate',(msg)=>{
 						switch(aMess[2]){
 							case"admin":
 								if(aMess[3]){
-									connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]});`,(err)=>{
+									connection.query(`INSERT INTO admin(userID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[aMess[3]]});`,(err)=>{
 										if(err)console.log(err);
 									})
 									msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[aMess[3]]]))
 									msg.reply("Пользователь успешно поставлен на пост!")
 								}else{
-									connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
+									connection.query("SELECT userID FROM admin WHERE perm = 'own';", (err,res)=>{
 										if(err) console.log(err);
-										own=res[0].uID;
+										own=res[0].userID;
 									})
 									const col=new Discord.MessageCollector(msg.channel,n => n.author.id===own,{
 										time:3600000
 									})
 									msg.reply("own|admin|mod|obs|bot")
 									col.on("collect",n => {
-										connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err)=>{
+										connection.query(`INSERT INTO admin(userID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err)=>{
 											if(err)console.log(err);
 										})
 										msg.mentions.members.first().roles.add(sample.roles.cache.find(role=>role.name === adminRoles[adminNums[n.content]]))
@@ -237,13 +239,13 @@ bot.on('messageCreate',(msg)=>{
 							m.content=m.content.split(" ")
 							switch(m.content[0]){
 								case"admin":
-									connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
+									connection.query("SELECT userID FROM admin WHERE perm = 'own';", (err,res)=>{
 										if(err) console.log(err);
-										own=res[0].uID;
+										own=res[0].userID;
 									})
 									if(msg.mentions.members.id){
 										if(m.content[1]){
-											connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
+											connection.query(`INSERT INTO admin(userID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[m.content[1]]});`,(err) => {
 												if(err) console.log(err);
 											})
 											msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[m.content]]))
@@ -254,7 +256,7 @@ bot.on('messageCreate',(msg)=>{
 												time:3600000
 											})
 											col.on("collect",n => {
-												connection.query(`INSERT INTO admin(uID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err) => {
+												connection.query(`INSERT INTO admin(userID, perm) VALUES (${msg.mentions.members.first().id}, ${adminNums[n.content]});`,(err) => {
 													if(err) console.log(err);
 												})
 												msg.mentions.members.first().roles.add(sample.roles.cache.find(role => role.name===adminRoles[adminNums[n.content]]))
@@ -279,20 +281,20 @@ bot.on('messageCreate',(msg)=>{
 					if(aMess[2]){
 						switch(aMess[2]){
 							case"admin":
-								connection.query(`SELECT perm FROM admin WHERE uID = ${msg.mentions.members.first().id};`, (err,res)=>{
+								connection.query(`SELECT perm FROM admin WHERE userID = ${msg.mentions.members.first().id};`, (err,res)=>{
 									if(err) console.log(err);
 									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
 								})
-								connection.query("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
+								connection.query("DELETE FROM admin WHERE userID=?;", [msg.mentions.members.first().id],(err)=>{
 									if(err)console.log(err);
 								})
 								msg.reply("Пользователь успешно убран с поста.")
 							break;
 						}
 					}else{
-						connection.query("SELECT uID FROM admin WHERE perm = 'own';", (err,res)=>{
+						connection.query("SELECT userID FROM admin WHERE perm = 'own';", (err,res)=>{
 							if(err) console.log(err);
-							own=res[0].uID;
+							own=res[0].userID;
 						})
 						const collector=new Discord.MessageCollector(msg.channel,m => m.author.id===own,{
 							time:3600000
@@ -302,7 +304,7 @@ bot.on('messageCreate',(msg)=>{
 							switch(m.content){
 								case"admin":
 									msg.mentions.members.first().roles.remove(sample.roles.cache.find(role=>role.name === adminRoles[res[0].perm]))
-									connection.query("DELETE FROM admin WHERE uID=?;", [msg.mentions.members.first().id],(err)=>{
+									connection.query("DELETE FROM admin WHERE userID=?;", [msg.mentions.members.first().id],(err)=>{
 										if(err)console.log(err);
 									})
 									msg.reply("Пользователь успешно убран с поста.")
@@ -328,6 +330,47 @@ bot.on('messageCreate',(msg)=>{
 					msg.channel.bulkDelete(fetched)
 						.catch(error => msg.reply(`Couldn't delete messages because of: ${error}`));
 				break;
+				case"!mute":
+					try{
+						let rolesIds=[];
+						if(admins.includes(msg.author.id)){
+							if (msg.mentions.users.first()) {
+								sample.members.cache.get(msg.mentions.users.first().id).roles.add(mute, `Muted by ${msg.author.tag}`)
+									.then(member_ => {//GuildMember
+										member_.roles.cache.toJSON().forEach(role=>{
+											if(role.name!=='@everyone'&&role.id!==mute.id){
+												rolesIds.push(role.id);
+												member_.roles.remove(role.id)
+											}
+										})
+										connection.query(`INSERT INTO mutedPPL(userID, endMute, roles) VALUES (${msg.mentions.members.first().id}, ${msg.content[2]?(Number(msg.content[2])*1000)+Date.now():Date.now()+86400000}, "${rolesIds.join("$")}");`,err=>{
+											if (err) console.log(err);
+										})
+									})
+							} else {
+								if (Number(msg.content[1])) {
+									sample.members.cache.get(msg.content[1]).roles.add(mute, `Muted by ${msg.author.tag}`)
+										.then(member_ => {
+											member_.roles.cache.toJSON().forEach(role=>{
+												if(role.name!=='@everyone'&&role.id!==mute.id){
+													rolesIds.push(role.id);
+													member_.roles.remove(role.id)
+												}
+											})
+											connection.query(`INSERT INTO mutedPPL(userID, endMute, roles) VALUES (${member_.id}, ${msg.content[2]?(Number(msg.content[2])*1000)+Date.now():Date.now()+86400000});`,(err) => {
+												if (err) console.log(err);
+											})
+										})
+								} else {
+									msg.reply('Вы забыли выбрать цель. Или цель указанна некорректно.')
+								}
+							}
+						}else KMS(msg);
+					}catch(err){
+						msg.reply('Something wrong... (*Window XP shutdown sound*)')
+						console.log(err)
+					}
+				break;
 				default:
 					userCommands(msg)
 				break;
@@ -337,20 +380,20 @@ bot.on('messageCreate',(msg)=>{
 		}
 	}else{
 		console.log(`${msg.author.id}-${msg.channel.name}:\n>${msg.content}<`)
-		connection.query(`SELECT * FROM users WHERE uID = ${msg.author.id};`,(err,res)=>{
+		connection.query(`SELECT * FROM users WHERE userID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
 				if(res[0].msgCount%res[0].divisor!==0){
-					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE uID = ${msg.author.id};`,(err)=>{
+					connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE userID = ${msg.author.id};`,(err)=>{
 						if(err)console.log(err);
 					})
 				}else{
-					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE uID=?;',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
+					connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE userID=?;',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
 						if(err) console.log(err);
 					})
 				}
 			}else{
-				connection.query(`INSERT INTO users(uID) VALUES ('${msg.author.id}');`,(err)=>{
+				connection.query(`INSERT INTO users(userID) VALUES ('${msg.author.id}');`,(err)=>{
 					if(err)console.log(err);
 				})
 			}
@@ -365,11 +408,11 @@ bot.on('guildMemberAdd',mbr=>{
 	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
 	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
-	connection.query(`SELECT * FROM users WHERE uID = '${mbr.id}';`, (err,res)=>{
+	connection.query(`SELECT * FROM users WHERE userID = '${mbr.id}';`, (err,res)=>{
 		if(err)console.log(err);
 		if(mbr.user.bot)return;
 		if(res.length===0){
-			connection.query(`INSERT INTO users(uID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
+			connection.query(`INSERT INTO users(userID, msgCount, lvl, banned, leaving, perm) VALUES( '${mbr.id}', 0, 0, false, 0, 0);`, (err)=>{
 				if(err)console.log(err);
 			});
 			mbr.roles.add(sample.roles.cache.get("898339903417483285"))//должна быть newbie's role
@@ -489,15 +532,15 @@ bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирова
 		rolesID.push(role.id)
 	})
 	if(rolesID){
-		connection.query('UPDATE users SET roles=? WHERE uID=?;', [rolesID.join('$'), newMbr.id], err => {
+		connection.query('UPDATE users SET roles=? WHERE userID=?;', [rolesID.join('$'), newMbr.id], err => {
 			if (err) console.log(err)
 		})
 	}
 })
 bot.on('guildMemberRemove', mbr=>{
-	connection.query('SELECT leaving FROM users WHERE uID=?;',[mbr.id],(err, result) => {
+	connection.query('SELECT leaving FROM users WHERE userID=?;',[mbr.id],(err, result) => {
 		if(err)console.log(err);
-		connection.query('UPDATE users SET leaving=? WHERE uID=?;',[result[0].leaving+1,mbr.id],err1 => {
+		connection.query('UPDATE users SET leaving=? WHERE userID=?;',[result[0].leaving+1,mbr.id],err1 => {
 			if(err1)console.log(err1);
 		})
 	})
