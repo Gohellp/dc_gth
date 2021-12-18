@@ -133,7 +133,7 @@ coming soon:D`
 							}else{
 								connection.query(`select * from admin where userID = ${react.author.id};`,(err,res)=>{
 									if(err)console.log(err);
-									connection.query(`insert into admin(trust_factor, violations) values (${res.trust_factor-100}, ${res.violations+1});`,(err)=>{
+									connection.query(`insert into admin(trust_factor) values (${res.trust_factor-100});`,(err)=>{
 										if(err) return console.log(err)
 										console.log(`Фактор доверия ${react.author.id} был понижен из-за пренебрежительного отношения к боту.`)
 									})
@@ -512,16 +512,31 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
 			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
-				try{
-					sample.channels.cache.get(vc1.channelId).delete()
-						.then(()=>{
-							connection.query('DELETE FROM voices WHERE ownID=?;',[vc1.id],err1 => {
-								if(err1)console.log(err1)
+				if(!vc1.channel.members.size){
+					try {
+						sample.channels.cache.get(vc1.channelId).delete()
+							.then(() => {
+								connection.query('DELETE FROM voices WHERE ownID=?;', [vc1.id], err1 => {
+									if (err1) console.log(err1)
+								})
 							})
+					} catch (e) {
+						console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
+						//TODO: логгирование в чат sample_logs
+					}
+				} else {
+					let nextMemberOwner = vc1.channel.members.toJSON()[Math.floor(Math.random() * (vc1.channel.members.size - 1))]
+					connection.query("UPDATE voices SET ownID=? WHERE ownID=?;",[nextMemberOwner.id, ownID_[0].ownID], (err)=>{
+						if(err)console.log(err)
+						vc1.channel.edit({name: `${nextMemberOwner.user.username}'s channel`,
+							permissionOverwrites: [
+								{
+									id: nextMemberOwner.id,
+									allow: ['MANAGE_CHANNELS', 'MANAGE_ROLES']
+								}
+							]
+						})
 					})
-				}catch(e){
-					console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
-					//TODO: логгирование в чат sample_logs
 				}
 			}
 		})
@@ -551,4 +566,4 @@ bot.on('guildMemberRemove', mbr=>{
 
 bot.login(cfg.token);
 
-process.on('exit',code=>console.log(code));
+process.on('exit',code=>console.log(`Ended with code: ${code}`));
