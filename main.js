@@ -365,7 +365,7 @@ bot.on('messageCreate',(msg)=>{
 						console.log(err)
 					}
 				break;
-				case"!getRandSong":
+				case"!getrandSong":
 					let dirInfo = fs.readdirSync("D:\\rythm_game\\osu\\Songs")
 					dirInfo.forEach((item,index)=>{
 						if(item.includes("_")){
