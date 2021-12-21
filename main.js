@@ -371,6 +371,22 @@ bot.on('messageCreate',(msg)=>{
 						console.log(err)
 					}
 				break;
+				case"!getRandSong":
+					let dirInfo = fs.readdirSync("D:\\rythm_game\\osu\\Songs")
+					dirInfo.forEach((item,index)=>{
+						if(item.includes("_")){
+							dirInfo[index]=item.split("_")
+						}else{
+							dirInfo[index]=item.split(" ")
+						}
+					})
+					dirInfo.forEach((item,index)=>{
+						item.shift()
+						dirInfo[index]=item.join(" ")
+					})
+					let randNum = Math.floor(Math.random()*dirInfo.length)
+					console.log(dirInfo[randNum])
+					break;
 				default:
 					userCommands(msg)
 				break;
