@@ -1,8 +1,8 @@
-const Discord = require("discord.js");
-const moment  = require('moment');
-const mysql   = require('mysql2');
-const cfg     = require('./config.json')
-const bot     = new Discord.Client({
+const Discord = require("discord.js"),
+	moment    = require('moment'),
+	mysql     = require('mysql2'),
+	cfg       = require('./config.json'),
+	bot       = new Discord.Client({
 	intents:
 		[
 			Discord.Intents.FLAGS.GUILDS,
@@ -36,32 +36,29 @@ const adminRoles ={
 	3:"sample_observer",
 	4:"sample_bots"
 },
-	userRoles  ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
+	userRoles ={//0 - нет каких-либо разрешений, +∞ - какие-либо доп плюшки
 	0:"sample_newbie",
 	1:"sample_user",
 	2:"sample_junior"
 },
-	adminNums  ={
+	adminNums ={
 	"own"   :0,
 	"admin" :1,
 	"mod"   :2,
 	"obs"   :3,
 	"bot"   :4
 },
-	answer     ={
+	answer ={
 	"нет":false,
 	"yes":false,
 	"да":true,
 	"no":true,
-}
+};
 let own,
 	mute,
 	sample,
 	admins=[];
 
-function delChannel(ch,text){
-	ch.delete(text)
-}
 function userCommands(msg){
 	let mess=msg.content.split(" ")
 	mess[0]=mess[0].toLowerCase()
@@ -192,7 +189,7 @@ bot.once('ready',()=>{
 });
 bot.on('messageCreate',(msg)=>{
 	if(msg.author.bot)return;
-	if(!msg.author.bot&&msg.content.startsWith("!")){
+	if(msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
 			let aMess=msg.content.toLowerCase().split(" ")
 			switch(aMess[0]){
@@ -324,10 +321,7 @@ bot.on('messageCreate',(msg)=>{
 					if (!deleteCount || deleteCount < 2 || deleteCount > 100)
 						return msg.reply('Please provide a number between 2 and 100 for the number of messages to delete');
 
-					const fetched = msg.channel.messages.fetch({
-						limit: deleteCount,
-					});
-					msg.channel.bulkDelete(fetched)
+					msg.channel.bulkDelete(deleteCount)
 						.catch(error => msg.reply(`Couldn't delete messages because of: ${error}`));
 				break;
 				case"!mute":
@@ -489,7 +483,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 		})
 			.then(ch=>{
 				vc2.setChannel(ch)
-				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
+				connectionDB(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
 					if(err)console.log(err)
 				})
 				//TODO: записывать айди текстового канала в бд
@@ -525,7 +519,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					})*/
 			})
 	}else if(vc2.channelId!==vc1.channelId){
-		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
+		connectionDB('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
 			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
@@ -570,7 +564,7 @@ bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирова
 			if (err) console.log(err)
 		})
 	}
-})
+});
 bot.on('guildMemberRemove', mbr=>{
 	connection.query('SELECT leaving FROM users WHERE userID=?;',[mbr.id],(err, result) => {
 		if(err)console.log(err);
@@ -579,7 +573,7 @@ bot.on('guildMemberRemove', mbr=>{
 		})
 	})
 
-})
+});
 
 bot.login(cfg.token);
 
