@@ -385,7 +385,8 @@ bot.on('messageCreate',(msg)=>{
 						dirInfo[index]=item.join(" ")
 					})
 					let randNum = Math.floor(Math.random()*dirInfo.length)
-					console.log(dirInfo[randNum])
+					msg.reply(dirInfo[randNum])
+					randNum=Null;
 					break;
 				default:
 					userCommands(msg)
