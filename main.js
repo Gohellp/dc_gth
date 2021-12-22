@@ -466,7 +466,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 		})
 			.then(ch=>{
 				vc2.setChannel(ch)
-				connectionDB(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
+				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
 					if(err)console.log(err)
 				})
 				//TODO: записывать айди текстового канала в бд
@@ -502,7 +502,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					})*/
 			})
 	}else if(vc2.channelId!==vc1.channelId){
-		connectionDB('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
+		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
 			if(err)console.log(err)
 			if(ownID_[0])
 			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
