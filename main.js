@@ -57,6 +57,7 @@ const adminRoles ={
 let own,
 	mute,
 	sample,
+	logsChannel,
 	admins=[];
 
 function userCommands(msg){
@@ -64,14 +65,14 @@ function userCommands(msg){
 	mess[0]=mess[0].toLowerCase()
 	switch(mess[0]){
 		/*
-		TODO:!bagrep, !question, !faq(создавать на основе вопроса-ответа, полученных в !question) и
+		TODO: !question, !faq(создавать на основе вопроса-ответа, полученных в !question) и
 			!helpme(помощь людям с их личными проблемами). Хочу сделать утопическую инфраструктуру,
 			которую будет ОЧЕНЬ сложно обмануть
 		*/
 		case"!help":
 			if(!mess[1]){
 				//TODO: Всё-таки, придумать что написать в хелпе
-				msg.channel.send(`Here is bot's commands:\ncoming soon:D`)
+				msg.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\nComing soon:D")
 			}else{
 				switch(mess[1]){
 					case"admin":
@@ -92,25 +93,24 @@ coming soon:D`
 			}
 		break;
 		case"!report":
-			if(mess[1]&&mess[2]&&mess[3]){
+			if(mess[1]&&mess[2]){
 				mess.shift()
-				bot.channels.cache.find(ch=>ch.id==="852608455352909834")//ID of log(?) channel
-					.send(`Жалоба получена от <@${msg.author.id}>`)
+				bot.channels.cache.find(ch=>ch.id==="898093629564919858")//ID of log(?) channel
+					.send(`Жалоба от <@${msg.author.id}>\nНа пользователя: ${mess[0]}\nТекст:\`${mess.splice(2,mess.length).join(" ")}\``)
 					.then(message=>{
 						message.react('❌');message.react('✔');
-						const filter = (reaction, user) => {
-							return ['❌', '✔'].includes(reaction.emoji.name) && !user.bot;
+						const filter = (reaction) => {
+							return ['❌', '✔'].includes(reaction.emoji.name);
 						};
 						const reactColl = message.createReactionCollector(filter,{
 							max: 3,
 							time:18000000,
 						});
 
-						reactColl.on("collect",react=>{
-							console.log(react)
-							if(react.emoji.name==="✔"){
+						reactColl.on("collect",(react, user)=>{
+							if(react.emoji.name==="✔"&&!user.bot){
 
-							}else if(react.emoji.name==="❌"){
+							}else if(react.emoji.name==="❌"&&!user.bot){
 								/*
 								TODO:Дима, тебе пизда. Зря ты решил это делать. Надо создать ещё один коллектор реакций и
 									ещё один then для работы всего ЭТОГО. Земля тебе пухом.
@@ -127,19 +127,19 @@ coming soon:D`
 
 										})
 									})
-							}else{
-								connection.query(`select * from admin where userID = ${react.author.id};`,(err,res)=>{
+							}else if(!user.bot){
+								connection.query(`select * from admin where userID = ${user.id};`,(err,res)=>{
 									if(err)console.log(err);
 									connection.query(`insert into admin(trust_factor) values (${res.trust_factor-100});`,(err)=>{
 										if(err) return console.log(err)
-										console.log(`Фактор доверия ${react.author.id} был понижен из-за пренебрежительного отношения к боту.`)
+										console.log(`Фактор доверия ${user.id} был понижен из-за пренебрежительного отношения к боту.`)
 									})
 								})
 							}
 						})
 					})
 			}else{
-				msg.reply("Вы забыли указать, как минимум пользователя, правило и айди сообщения/канал, в котором это произошло.")
+				msg.reply("Вы забыли указать пользователя и/или причину(комментарий/айди сообщения/канал), в котором это произошло.")
 			}
 /*
 |тикет - запрос на вызов админа для выявления нарушений правил сервера. Он предназначен НЕ ДЛЯ задавания вопросов,
@@ -185,6 +185,7 @@ bot.once('ready',()=>{
 	setInterval(checkMuted,5000)
 	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//Guild
 	mute=sample.roles.cache.find(r=>r.name==="sample_muted")//Mute role
+	logsChannel=sample.channels.cache.find(ch=>ch.name==="sample_logs")
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
 bot.on('messageCreate',(msg)=>{
@@ -359,9 +360,9 @@ bot.on('messageCreate',(msg)=>{
 									msg.reply('Вы забыли выбрать цель. Или цель указанна некорректно.')
 								}
 							}
-						}else KMS(msg);
+						}
 					}catch(err){
-						msg.reply('Something wrong... (*Window XP shutdown sound*)')
+						logsChannel.send(`<@653202825580380193> some error with Muting Member(line: 329-363).\nMember who try to mute: <@${msg.author.id}>\nMember: <@${msg.content[1]}>\nError message:\`\`\`${err}\`\`\``)
 						console.log(err)
 					}
 				break;
@@ -395,12 +396,12 @@ bot.on('messageCreate',(msg)=>{
 	}
 });
 bot.on('guildMemberAdd',mbr=>{
-	/*
-	Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
-	Если оценка ниже определённого порога, то модеру и админской команде сообщается о его успеваниях.
-	Если оценка модера ниже ещё, то бот стартует голосование на снятие с должности длиною в пол дня.
-	Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
-	Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
+	/*TODO:
+	   Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
+	   Если оценка ниже определённого порога, то модеру и админской команде сообщается о его успеваниях.
+	   Если оценка модера ниже ещё, то бот стартует голосование на снятие с должности длиною в пол дня.
+	   Если оценка на дне, то бот сам снимает роль. Можно также сделать такую ж автоматизацию и для юзеров, но фиг знает.
+	   Дима, не забудь со всеми этими наказаниями сделать и систему повышения карьеры вплоть до модератора:D
 	*/
 	if(mbr.bot)return;
 	connection.query(`SELECT * FROM users WHERE userID = '${mbr.id}';`, (err,res)=>{
@@ -469,37 +470,6 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 				connection.query(`INSERT INTO voices(voiceID,ownID) VALUES(${ch.id},${vc2.id});`,err => {
 					if(err)console.log(err)
 				})
-				//TODO: записывать айди текстового канала в бд
-				/*sample.members.cache.find(m=>m.id===vc2.id).createDM()
-					.then(DMchat=>{
-						const collector=new Discord.MessageCollector(DMchat,m=>(m.channel.type==="dm"&&m.author.id===vc2.id),{
-							time:120000,
-						})
-						DMchat.send("Хотите ли вы создать текстовый канал?(да|нет)")
-						collector.on("collect", msg=>{
-
-							if(answer[msg.content.toLowerCase()]){//Шняга рабочая
-								sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s text_channel`,{
-									type:'GUILD_TEXT',
-									parent:sample.channels.cache.get('845745372814114846'),//ID of voice category
-									permissionOverwrites:[
-										{
-											id: msg.author.id,
-											allow: ['MANAGE_CHANNELS','MANAGE_ROLES','MANAGE_MESSAGES ','ADMINISTRATOR']
-										},
-										{
-											id: "845744837315133450",
-											deny: ['VIEW_CHANNEL', 'SEND_MESSAGES']
-										}
-									]
-								})
-							}else{
-								DMchat.send("Хотите ли вы, чтобы я задавал этот вопрос в дальнейшем?(да|нет)")
-								//TODO: Создать коллектор внутри коллектора дабы проверить
-								collector.stop("No one reason to be here")
-							}
-						})
-					})*/
 			})
 	}else if(vc2.channelId!==vc1.channelId){
 		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
@@ -515,8 +485,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 								})
 							})
 					} catch (e) {
-						console.log(`Аэм.... Чё за? Я не могу удалити канал. памагити!!!\n ${e}`)
-						//TODO: логгирование в чат sample_logs
+						logsChannel.send(`<@653202825580380193> some error with Deleting Voice Channel(line: 474-507).\nError message:\`\`\`${e}\`\`\``)
 					}
 				} else {
 					let nextMemberOwner = vc1.channel.members.toJSON()[Math.floor(Math.random() * (vc1.channel.members.size - 1))]
