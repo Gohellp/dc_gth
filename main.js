@@ -72,7 +72,7 @@ function userCommands(msg){
 		case"!help":
 			if(!mess[1]){
 				//TODO: Всё-таки, придумать что написать в хелпе
-				msg.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\nComing soon:D")
+				msg.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\npaparating na:D")
 			}else{
 				switch(mess[1]){
 					case"admin":
@@ -80,9 +80,11 @@ function userCommands(msg){
 							if(res.length!==0){
 								msg.reply(
 `Here is all admins commands:
-!add {mention} {somewhere} (perms) - adds a user to somewhere
-!del {mention} {somewhere} - removes the user from anywhere
-coming soon:D`
+!add {mention} {somewhere} (perms) - adds a user to \${somewhere}
+!del {mention} {somewhere} - removes the user from \${somewhere}
+!rm {2<number<100} - deleting \${number} messages
+!mute {mention|userID} (time in seconds) - I won't comment that ¯\\\\_(ツ)\\_/¯
+paparating na:D`
 								)
 							}else{
 								msg.reply("Эта комманда доступна только админам сервера.")
