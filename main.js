@@ -47,12 +47,6 @@ const adminRoles ={
 	"mod"   :2,
 	"obs"   :3,
 	"bot"   :4
-},
-	answer ={
-	"нет":false,
-	"yes":false,
-	"да":true,
-	"no":true,
 };
 let own,
 	mute,
@@ -71,7 +65,6 @@ function userCommands(msg){
 		*/
 		case"!help":
 			if(!mess[1]){
-				//TODO: Всё-таки, придумать что написать в хелпе
 				msg.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\npaparating na:D")
 			}else{
 				switch(mess[1]){
@@ -97,7 +90,7 @@ paparating na:D`
 		case"!report":
 			if(mess[1]&&mess[2]){
 				mess.shift()
-				bot.channels.cache.find(ch=>ch.id==="898093629564919858")//ID of log(?) channel
+				bot.channels.cache.find(ch=>ch.id==="898093629564919858")//ID of log channel
 					.send(`Жалоба от <@${msg.author.id}>\nНа пользователя: ${mess[0]}\nТекст:\`${mess.splice(2,mess.length).join(" ")}\``)
 					.then(message=>{
 						message.react('❌');message.react('✔');
@@ -366,6 +359,34 @@ bot.on('messageCreate',(msg)=>{
 					}catch(err){
 						logsChannel.send(`<@653202825580380193> some error with Muting Member(line: 329-363).\nMember who try to mute: <@${msg.author.id}>\nMember: <@${msg.content[1]}>\nError message:\`\`\`${err}\`\`\``)
 						console.log(err)
+					}
+				break;
+				case"!ban":
+					if(msg.mentions.members.first()||aMess[2]){
+						if(msg.mentions.members.first()){
+							connection.query("UPDATE users SET banned = ? WHERE userID = ?",[true,msg.mentions.members.first().id],(err)=>{
+								if(err)console.log(err);
+								sample.members.cache.find(u=>u.id=msg.mentions.members.first().id).kick(`Banned by <@${msg.author.id}>`)
+									.send(`U've banned by ${msg.author.username}(${msg.author.id})`)
+									.then(()=>{
+										console.log(`\x1b[31mBAN\n\x1b[32mAdmin: \x1b[95m${msg.author.username}\x1b[39m(${msg.author.id})\n\x1b[93mBanned member: \x1b[95mm${msg.mentions.members.first().nickname}\x1b[39m(${msg.mentions.members.first().id})`)
+										logsChannel.send(`#BAN\nAdmin: ${msg.author.username}(${msg.author.id})\nBanned member: ${msg.mentions.members.first().nickname}(${msg.mentions.members.first().id})`)
+									})
+							})
+						}else{
+							connection.query("UPDATE users SET banned = ? WHERE userID = ?",[true,aMess[2]],(err)=>{
+								if(err)console.log(err);
+								let banned=sample.members.cache.find(u=>u.id=aMess[2])
+									banned.send(`U've banned by ${msg.author.username}(${msg.author.id})`)
+									banned.kick(`Banned by <@${msg.author.id}>`)
+									.then(()=>{
+										console.log(`\x1b[31mBAN\n\x1b[32mAdmin: \x1b[95m${msg.author.username}\x1b[39m(${msg.author.id})\n\x1b[93mBanned member: \x1b[95mm${banned.username}\x1b[39m(${banned.id})`)
+										logsChannel.send(`#BAN\nAdmin: ${msg.author.username}(${msg.author.id})\nBanned member: ${banned.username}(${banned.id})`)
+									})
+							})
+						}
+					}else{
+						msg.reply("You didn't mention the user or didn't specify his userID")
 					}
 				break;
 				default:
