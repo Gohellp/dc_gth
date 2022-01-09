@@ -3,18 +3,18 @@ const Discord = require("discord.js"),
 	mysql     = require('mysql2'),
 	cfg       = require('./config.json'),
 	bot       = new Discord.Client({
-	intents:
-		[
-			Discord.Intents.FLAGS.GUILDS,
-			Discord.Intents.FLAGS.GUILD_MEMBERS,
-			Discord.Intents.FLAGS.GUILD_MESSAGES,
-			Discord.Intents.FLAGS.DIRECT_MESSAGES,
-			Discord.Intents.FLAGS.GUILD_VOICE_STATES,
-			Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-			Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-			Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-		],
-	partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
+		intents:
+			[
+				Discord.Intents.FLAGS.GUILDS,
+				Discord.Intents.FLAGS.GUILD_MEMBERS,
+				Discord.Intents.FLAGS.GUILD_MESSAGES,
+				Discord.Intents.FLAGS.DIRECT_MESSAGES,
+				Discord.Intents.FLAGS.GUILD_VOICE_STATES,
+				Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
+				Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+				Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+			],
+		partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
 });
 
 const connection =mysql.createConnection({
@@ -54,7 +54,7 @@ let own,
 	logsChannel,
 	admins=[];
 
-function userCommands(msg){
+async function userCommands(msg){
 	let mess=msg.content.split(" ")
 	mess[0]=mess[0].toLowerCase()
 	switch(mess[0]){
@@ -93,45 +93,7 @@ paparating na:D`
 				bot.channels.cache.find(ch=>ch.id==="898093629564919858")//ID of log channel
 					.send(`Жалоба от <@${msg.author.id}>\nНа пользователя: ${mess[0]}\nТекст:\`${mess.splice(2,mess.length).join(" ")}\``)
 					.then(message=>{
-						message.react('❌');message.react('✔');
-						const filter = (reaction) => {
-							return ['❌', '✔'].includes(reaction.emoji.name);
-						};
-						const reactColl = message.createReactionCollector(filter,{
-							max: 3,
-							time:18000000,
-						});
-
-						reactColl.on("collect",(react, user)=>{
-							if(react.emoji.name==="✔"&&!user.bot){
-
-							}else if(react.emoji.name==="❌"&&!user.bot){
-								/*
-								TODO:Дима, тебе пизда. Зря ты решил это делать. Надо создать ещё один коллектор реакций и
-									ещё один then для работы всего ЭТОГО. Земля тебе пухом.
-								*/
-								message.channel.send("Голосование за снятие тикета")
-									.then(msj=>{
-										msj.react('➕')
-										msj.react('➖')
-										const reactCollect = msj.createReactionCollector(filter,{
-											max: 5,
-											time:18000000,
-										});
-										reactCollect.on("collect",reaction=>{
-
-										})
-									})
-							}else if(!user.bot){
-								connection.query(`select * from admin where userID = ${user.id};`,(err,res)=>{
-									if(err)console.log(err);
-									connection.query(`insert into admin(trust_factor) values (${res.trust_factor-100});`,(err)=>{
-										if(err) return console.log(err)
-										console.log(`Фактор доверия ${user.id} был понижен из-за пренебрежительного отношения к боту.`)
-									})
-								})
-							}
-						})
+						report(message)
 					})
 			}else{
 				msg.reply("Вы забыли указать пользователя и/или причину(комментарий/айди сообщения/канал), в котором это произошло.")
@@ -175,6 +137,43 @@ function checkMuted(){
 		})
 	})
 }
+function report(message){
+	message.react('❌');message.react('✔');
+	const filter = (reaction) => {
+		return ['❌', '✔'].includes(reaction.emoji.name);
+	};
+	const reactColl = message.createReactionCollector(filter,{
+		max: 3,
+		time:18000000,
+	});
+
+	reactColl.on("collect",(react, user)=>{
+		if(react.emoji.name==="✔"&&!user.bot){
+
+		}else if(react.emoji.name==="❌"&&!user.bot){
+			message.channel.send("Голосование за снятие тикета")
+				.then(msj=>{
+					msj.react('➕')
+					msj.react('➖')
+					const reactCollect = msj.createReactionCollector(filter,{
+						max: 5,
+						time:18000000,
+					});
+					reactCollect.on("collect",reaction=>{
+
+					})
+				})
+		}else if(!user.bot){
+			connection.query(`select * from admin where userID = ${user.id};`,(err,res)=>{
+				if(err)console.log(err);
+				connection.query(`insert into admin(trust_factor) values (${res.trust_factor-100});`,(err)=>{
+					if(err) return console.log(err)
+					console.log(`Фактор доверия ${user.id} был понижен из-за пренебрежительного отношения к боту.`)
+				})
+			})
+		}
+	})
+}
 
 bot.once('ready',()=>{
 	setInterval(checkMuted,5000)
@@ -183,7 +182,7 @@ bot.once('ready',()=>{
 	logsChannel=sample.channels.cache.find(ch=>ch.name==="sample_logs")
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
-bot.on('messageCreate',(msg)=>{
+bot.on('messageCreate',async (msg)=>{
 	if(msg.author.bot)return;
 	if(msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
@@ -389,12 +388,39 @@ bot.on('messageCreate',(msg)=>{
 						msg.reply("You didn't mention the user or didn't specify his userID")
 					}
 				break;
+				case"!deploy":
+					if (!msg.guild) return;
+					await msg.guild.commands.set([
+						{
+							name:'help',
+							description:'Send some helpful info'
+						},
+						{
+							name:'report',
+							description:'Em... Report?',
+							options:[
+								{
+									name:'who',
+									type:'USER',
+									description:'The participant for whom the report is being compiled',
+									required: true
+								},
+								{
+									name:'idk',
+									type:'STRING',
+									description:'Description of report',
+									required: false
+								}
+							]
+						}
+					])
+				break;
 				default:
-					userCommands(msg)
+					await userCommands(msg)
 				break;
 			}
 		}else{
-			userCommands(msg);
+			await userCommands(msg);
 		}
 	}else{
 		console.log(`${msg.author.id}-${msg.channel.name}:\n>${msg.content}<`)
@@ -418,6 +444,22 @@ bot.on('messageCreate',(msg)=>{
 		})
 	}
 });
+bot.on('interactionCreate', inter=>{
+	if(!inter.isCommand())return;
+	let command = inter.commandName,
+		args = inter.options._hoistedOptions
+	switch (command) {
+		case'help':
+			inter.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\npaparating na:D")
+		break
+		case'report':
+			logsChannel.send(`Жалоба от <@${inter.user.id}>\nНа пользователя: ${args[0].user}\nТекст:\`${args[1].value}\``)
+				.then(message=>{
+					report(message)
+				})
+		break
+	}
+})
 bot.on('guildMemberAdd',mbr=>{
 	/*TODO:
 	   Если же делать раздельные бд, то и делать систему оценки модерации. Оценка будет производиться пользователем по его тикету.
