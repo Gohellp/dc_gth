@@ -356,7 +356,7 @@ bot.on('messageCreate',async (msg)=>{
 							}
 						}
 					}catch(err){
-						logsChannel.send(`<@653202825580380193> some error with Muting Member(line: 329-363).\nMember who try to mute: <@${msg.author.id}>\nMember: <@${msg.content[1]}>\nError message:\`\`\`${err}\`\`\``)
+						logsChannel.send(`<@653202825580380193> some error with Muting Member.\nMember who try to mute: <@${msg.author.id}>\nMember: <@${msg.content[1]}>\nError message:\`\`\`${err}\`\`\``)
 						console.log(err)
 					}
 				break;
@@ -390,6 +390,9 @@ bot.on('messageCreate',async (msg)=>{
 				break;
 				case"!deploy":
 					if (!msg.guild) return;
+					msg.guild.commands.cache.forEach((com)=>{
+						 msg.guild.commands.delete(com.id)
+					})
 					await msg.guild.commands.set([
 						{
 							name:'help',
@@ -423,7 +426,7 @@ bot.on('messageCreate',async (msg)=>{
 			await userCommands(msg);
 		}
 	}else{
-		console.log(`${msg.author.id}-${msg.channel.name}:\n>${msg.content}<`)
+		console.log(`\x1b[35m[${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tchatID:\x1b[0m ${msg.channelId}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tusertag:\x1b[0m ${msg.author.username}#${msg.author.discriminator}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}\x1b[34m\n\ttext:>${msg.content}<`)
 		connection.query(`SELECT * FROM users WHERE userID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
@@ -550,7 +553,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 								})
 							})
 					} catch (e) {
-						logsChannel.send(`<@653202825580380193> some error with Deleting Voice Channel(line: 474-507).\nError message:\`\`\`${e}\`\`\``)
+						logsChannel.send(`<@653202825580380193> some error with Deleting Voice Channel.\nError message:\`\`\`${e}\`\`\``)
 					}
 				} else {
 					let nextMemberOwner = vc1.channel.members.toJSON()[Math.floor(Math.random() * (vc1.channel.members.size - 1))]
