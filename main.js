@@ -484,7 +484,7 @@ bot.on('messageCreate',async (msg)=>{
 					})
 				})
 		}
-		console.log(`\x1b[35m[${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tchatID:\x1b[0m ${msg.channelId}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tusertag:\x1b[0m ${msg.author.username}#${msg.author.discriminator}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}\x1b[34m\n\ttext:>${msg.content}<\x1b[0m`)
+		console.log(`\x1b[35m[${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tchatID:\x1b[0m ${msg.channelId}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tusertag:\x1b[0m ${msg.author.username}#${msg.author.discriminator}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}\x1b[34m\n\ttext:\x1b[0m>${msg.content}<`)
 		connection.query(`SELECT * FROM users WHERE userID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
