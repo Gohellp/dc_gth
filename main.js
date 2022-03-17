@@ -128,6 +128,9 @@ TODO: отправка репортов с возможностью соглас
 		break;
 	}
 }
+function delChannel(ch,text){
+	ch.delete(text)
+}
 function checkMuted(){
 	connection.query("SELECT * FROM mutedPPL;", (err,data)=>{
 		if(err)console.log(err)
@@ -467,13 +470,16 @@ bot.on('messageCreate',async (msg)=>{
 				let firstLine = msg.content.toLowerCase().split("\n")[0].split(" ");
 				if(indexOfRaceLine_.includes("человек")&&firstLine.length<2){
 					discusChannel.send(`<@${msg.author.id}> Вы забыли указать фамилию в анкете`)
+					return;
 				}
 			}else{
 				let firstLine = msg.content.toLowerCase().split("\n")[0].split(" ");
 				if(indexOfRaceLine_.includes("человек")&&firstLine.length<=2){
 					discusChannel.send(`<@${msg.author.id}> Вы забыли указать фамилию в анкете`)
+					return;
 				}
 				discusChannel.send(`<@${msg.author.id}> Вы забыли указать рост в анкете`)
+				return;
 			}
 			msg.react('🤔')
 				.then(reaction_=>{
@@ -482,6 +488,7 @@ bot.on('messageCreate',async (msg)=>{
 					collector_.on("collect",()=>{
 						reaction_.remove()
 						sample.members.cache.get(msg.author.id).roles.add("953734365056208936")//rp user role
+						return;
 					})
 				})
 		}
