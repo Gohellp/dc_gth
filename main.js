@@ -196,6 +196,7 @@ bot.once('ready',()=>{
 	sample=bot.guilds.cache.find(g=>g.id==='897986118077788221')//Guild
 	mute=sample.roles.cache.find(r=>r.name==="sample_muted")//Mute role
 	logsChannel=sample.channels.cache.find(ch=>ch.name==="sample_logs")
+	discusChannel=sample.channels.cache.get("953387408748085339")
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`)
 });
 bot.on('messageCreate',async (msg)=>{
