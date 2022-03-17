@@ -1,18 +1,18 @@
-const Discord = require("discord.js"),
+const { Client, Intents, MessageCollector,createMessageCollector, MessageActionRow, MessageButton, MessageSelectMenu, MessageEmbed } = require("discord.js"),
 	moment    = require('moment'),
 	mysql     = require('mysql2'),
 	cfg       = require('./config.json'),
-	bot       = new Discord.Client({
+	bot       = new Client({
 		intents:
 			[
-				Discord.Intents.FLAGS.GUILDS,
-				Discord.Intents.FLAGS.GUILD_MEMBERS,
-				Discord.Intents.FLAGS.GUILD_MESSAGES,
-				Discord.Intents.FLAGS.DIRECT_MESSAGES,
-				Discord.Intents.FLAGS.GUILD_VOICE_STATES,
-				Discord.Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-				Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-				Discord.Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
+				Intents.FLAGS.GUILDS,
+				Intents.FLAGS.GUILD_MEMBERS,
+				Intents.FLAGS.GUILD_MESSAGES,
+				Intents.FLAGS.DIRECT_MESSAGES,
+				Intents.FLAGS.GUILD_VOICE_STATES,
+				Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
+				Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
+				Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
 			],
 		partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
 });
@@ -26,6 +26,12 @@ const connection =mysql.createConnection({
 connection.query('SELECT userID from admin;',(err,data)=>{
 	data.forEach(it=>{
 		admins.push(it.userID)
+	})
+})
+connection.query('SELECT * FROM rp_channels;',(err,data)=>{
+	if(err)console.log(err)
+	data.forEach(ID=>{
+		rpChannels.push(ID.channel_id)
 	})
 })
 
@@ -52,7 +58,10 @@ let own,
 	mute,
 	sample,
 	logsChannel,
-	admins=[];
+	discusChannel,
+	member_to_add,
+	admins=[],
+	rpChannels=[];
 
 async function userCommands(msg){
 	let mess=msg.content.split(" ")
@@ -174,6 +183,13 @@ function report(message){
 		}
 	})
 }
+function getLine(msgContent_){
+	msgContent_ = msgContent_.toLowerCase().split("\n");
+	return msgContent_.find(string_=>string_.includes("раса"))
+}
+function add_rp_admin(){
+
+}
 
 bot.once('ready',()=>{
 	setInterval(checkMuted,5000)
@@ -187,6 +203,7 @@ bot.on('messageCreate',async (msg)=>{
 	if(msg.content.startsWith("!")){
 		if(admins.includes(msg.author.id)){
 			let aMess=msg.content.toLowerCase().split(" ")
+			// noinspection FallThroughInSwitchStatementJS
 			switch(aMess[0]){
 				case"!add":
 					if(!msg.mentions.members){
@@ -207,7 +224,7 @@ bot.on('messageCreate',async (msg)=>{
 										if(err) console.log(err);
 										own=res[0].userID;
 									})
-									const col=new Discord.MessageCollector(msg.channel,n => n.author.id===own,{
+									const col=new MessageCollector(msg.channel,n => n.author.id===own,{
 										time:3600000
 									})
 									msg.reply("own|admin|mod|obs|bot")
@@ -224,7 +241,7 @@ bot.on('messageCreate',async (msg)=>{
 						}
 					}else{
 						msg.reply("Вы заранее не указали, куда добавлять. Пожалуйста, укажите это сейчас")
-						const collector=new Discord.MessageCollector(msg.channel,m=>admins.includes(m.author.id),{
+						const collector=new MessageCollector(msg.channel,m=>admins.includes(m.author.id),{
 							time: 3600000
 						})
 						collector.on("collect",m=>{
@@ -244,7 +261,7 @@ bot.on('messageCreate',async (msg)=>{
 											msg.reply("Пользователь успешно поставлен на пост!")
 										}else{
 											msg.reply("own|admin|mod|obs|bot")
-											const col=new Discord.MessageCollector(m.channel,n => n.author.id===own,{
+											const col=new MessageCollector(m.channel,n => n.author.id===own,{
 												time:3600000
 											})
 											col.on("collect",n => {
@@ -288,7 +305,7 @@ bot.on('messageCreate',async (msg)=>{
 							if(err) console.log(err);
 							own=res[0].userID;
 						})
-						const collector=new Discord.MessageCollector(msg.channel,m => m.author.id===own,{
+						const collector=new MessageCollector(msg.channel,m => m.author.id===own,{
 							time:3600000
 						})
 						msg.reply("Что ж вы хотите удалить, админ?")
@@ -418,6 +435,23 @@ bot.on('messageCreate',async (msg)=>{
 						}
 					])
 				break;
+				case"!rp":
+					// noinspection JSCheckFunctionSignatures
+					const row = new MessageActionRow()
+						.addComponents(
+							new MessageButton()
+								.setCustomId("rp_add_admin")
+								.setLabel("Add rp role")
+								.setStyle("SUCCESS")
+						)
+					const embed = new MessageEmbed()
+						.setColor('#0099ff')
+						.setTitle('Select what u want')
+					msg.reply({
+						embeds:[embed],
+						components:[row]
+					})
+					break;
 				default:
 					await userCommands(msg)
 				break;
@@ -426,7 +460,31 @@ bot.on('messageCreate',async (msg)=>{
 			await userCommands(msg);
 		}
 	}else{
-		console.log(`\x1b[35m[${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tchatID:\x1b[0m ${msg.channelId}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tusertag:\x1b[0m ${msg.author.username}#${msg.author.discriminator}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}\x1b[34m\n\ttext:>${msg.content}<`)
+		if(rpChannels.includes(msg.channel.id)){
+			let indexOfRaceLine_ = getLine(msg.content)
+			if(msg.content.toLowerCase().includes("рост")){
+				let firstLine = msg.content.toLowerCase().split("\n")[0].split(" ");
+				if(indexOfRaceLine_.includes("человек")&&firstLine.length<2){
+					discusChannel.send(`<@${msg.author.id}> Вы забыли указать фамилию в анкете`)
+				}
+			}else{
+				let firstLine = msg.content.toLowerCase().split("\n")[0].split(" ");
+				if(indexOfRaceLine_.includes("человек")&&firstLine.length<=2){
+					discusChannel.send(`<@${msg.author.id}> Вы забыли указать фамилию в анкете`)
+				}
+				discusChannel.send(`<@${msg.author.id}> Вы забыли указать рост в анкете`)
+			}
+			msg.react('🤔')
+				.then(reaction_=>{
+					const filter=(reaction, user)=>reaction.emoji.name==='✅'&&admins.includes(user.id);
+					const collector_=msg.createReactionCollector({filter,max:1,time:3600000})
+					collector_.on("collect",()=>{
+						reaction_.remove()
+						sample.members.cache.get(msg.author.id).roles.add("953734365056208936")//rp user role
+					})
+				})
+		}
+		console.log(`\x1b[35m[${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tchatID:\x1b[0m ${msg.channelId}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tusertag:\x1b[0m ${msg.author.username}#${msg.author.discriminator}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}\x1b[34m\n\ttext:>${msg.content}<\x1b[0m`)
 		connection.query(`SELECT * FROM users WHERE userID = ${msg.author.id};`,(err,res)=>{
 			if(err)console.log(err);
 			if(res.length!==0){
@@ -448,20 +506,134 @@ bot.on('messageCreate',async (msg)=>{
 	}
 });
 bot.on('interactionCreate', inter=>{
-	if(!inter.isCommand())return;
-	let command = inter.commandName,
-		args = inter.options._hoistedOptions
-	switch (command) {
-		case'help':
-			inter.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\npaparating na:D")
-		break
-		case'report':
-			logsChannel.send(`Жалоба от <@${inter.user.id}>\nНа пользователя: ${args[0].user}\nТекст:\`${args[1].value}\``)
-				.then(message=>{
-					report(message)
+	if(inter.isCommand()){
+		let command = inter.commandName,
+			args = inter.options._hoistedOptions
+		switch (command) {
+			case'help':
+				inter.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\npaparating na:D")
+			break
+			case'report':
+				logsChannel.send(`Жалоба от <@${inter.user.id}>\nНа пользователя: ${args[0].user}\nТекст:\`${args[1].value}\``)
+					.then(message => {
+						report(message)
+						inter.reply("Report has been sent")
+					})
+			break
+		}
+	}else if(inter.isButton()){
+		let interID = inter.customId
+		switch (interID) {
+			case"rp_add_admin":
+				inter.reply("Enter uID or mention this person")
+				connection.query("SELECT userID FROM admin WHERE perm = 0;", (err,res)=>{
+					if(err) console.log(err);
+					own=res[0].userID;
 				})
-		break
-	}
+				const collector = inter.channel.createMessageCollector({
+					filter:n => n.author.id===own,
+					max:1,
+					time:10*60*1000,
+					dispose:true
+				})
+				collector.on("collect", ctx=>{
+					if(ctx.mentions.members.first()){//here
+						connection.query(`SELECT * from rp_parents;`, (err, res) => {// LIMIT 4 OFFSET 4 (+4)
+							if (err) console.log(err);
+
+							member_to_add = ctx.mentions.members.first()
+							const row = new MessageActionRow()
+							const menu = new MessageSelectMenu().setCustomId('select_rp_uni').setPlaceholder('Select rp universe');
+
+							const embed = new MessageEmbed()
+								.setColor("#0099ff")
+								.setTitle('Select rp universe:')
+
+							const button = new MessageButton()
+								.setCustomId('next_select_uni')
+								.setLabel("Next")
+								.setStyle("SECONDARY")
+							res.forEach((item,i) => {
+								if(i<5){
+									menu.addOptions([
+										{
+											label:item.name,
+											value:item.role_id.toString()
+										}
+									])
+								}
+								if(i===5){
+									row.addComponents(button)
+								}
+							});
+							row.addComponents(menu)
+							ctx.reply({
+								embeds:[embed],
+								components: [row]
+							})
+						})
+					}else if(ctx.content){
+						let member = sample.members.cache.find(u=>u.id=ctx.content)
+						if(member){//and here
+							connection.query(`SELECT * from rp_parents;`, (err, res) => {// LIMIT 4 OFFSET 4 (+4)
+								if (err) console.log(err);
+
+								member_to_add = member
+								const row = new MessageActionRow()
+								const menu = new MessageSelectMenu().setCustomId('select_rp_uni').setPlaceholder('Select rp universe');
+
+								const embed = new MessageEmbed()
+									.setColor("#0099ff")
+									.setTitle('Select rp universe:')
+
+								const button = new MessageButton()
+									.setCustomId('next_select_uni')
+									.setLabel("Next")
+									.setStyle("SECONDARY")
+								res.forEach((item,i) => {
+									if(i<5){
+										menu.addOptions([
+											{
+												label:item.name,
+												value:item.role_id.toString()
+											}
+										])
+									}
+									if(i===5){
+										row.addComponents(button)
+									}
+								});
+								row.addComponents(menu)
+								ctx.reply({
+									embeds:[embed],
+									components: [row]
+								})
+							})
+						}else{
+							ctx.reply("Wrong data type")
+							collector.resetTimer({time: 10*60*1000})
+						}
+					}else{
+						ctx.reply("Wrong data type")
+						collector.resetTimer({time: 10*60*1000})
+					}
+				})
+				collector.on("end", (col, reason)=>{
+					if(reason==="time"){
+						inter.channel.send("You'r not select any user.")
+					}
+				})
+			break;
+		}
+	}else if(inter.isSelectMenu()){
+		switch (inter.values[0]) {
+			case"953734365056208936":
+				sample.members.cache.get(member_to_add.id).roles.add(sample.roles.cache.get("953734365056208936"))
+				inter.reply("Added role to user")
+				member_to_add=undefined
+			break;
+		}
+	}else return;
 })
 bot.on('guildMemberAdd',mbr=>{
 	/*TODO:
