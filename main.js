@@ -128,9 +128,6 @@ TODO: отправка репортов с возможностью соглас
 		break;
 	}
 }
-function delChannel(ch,text){
-	ch.delete(text)
-}
 function checkMuted(){
 	connection.query("SELECT * FROM mutedPPL;", (err,data)=>{
 		if(err)console.log(err)
@@ -188,7 +185,7 @@ function report(message){
 }
 function getLine(msgContent_){
 	msgContent_ = msgContent_.toLowerCase().split("\n");
-	return msgContent_.find(string_=>string_.includes("раса"))
+	return msgContent_.find(string_=>string_.includes("раса")||string_.includes("расcа")||string_.includes("раса:"))
 }
 function add_rp_admin(){
 
@@ -676,7 +673,7 @@ bot.on('guildMemberAdd',mbr=>{
 					]
 				})
 					.then(vch=>{
-						setTimeout(delChannel,300000,sample.channels.cache.find(c=>c.id===vch.id),"Deleted by time")//300000
+						setTimeout(sample.channels.cache.find(c=>c.id===vch.id).delete,30*60*1000,"Deleted by time")
 					})
 			}
 			bot.channels.cache.find(ch=>ch.name==="sample_starting")//name of start channel
@@ -766,6 +763,7 @@ bot.on('guildMemberUpdate',(oldMbr,newMbr)=>{//Сделать реагирова
 	}
 });
 bot.on('guildMemberRemove', mbr=>{
+	if(mbr.user.bot)return;
 	connection.query('SELECT leaving FROM users WHERE userID=?;',[mbr.id],(err, result) => {
 		if(err)console.log(err);
 		connection.query('UPDATE users SET leaving=? WHERE userID=?;',[result[0].leaving+1,mbr.id],err1 => {
