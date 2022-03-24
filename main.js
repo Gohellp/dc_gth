@@ -700,6 +700,15 @@ bot.on('guildMemberAdd',mbr=>{
 });
 bot.on('voiceStateUpdate',(vc1,vc2)=>{
 	if(vc2.channelId==="897986118954414103"){
+		if(vc1.channelId!==null&&!vc1.channel.members.size){
+			sample.channels.cache.get(vc1.channelId).delete()
+				.then(() => {
+					connection.query('DELETE FROM voices WHERE ownID=?;', [vc1.id], err1 => {
+						if (err1) console.log(err1)
+					})
+				})
+		}
+
 		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'GUILD_VOICE',
 			parent:sample.channels.cache.get('897986118954414101'),//ID of voice category
@@ -716,11 +725,12 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					if(err)console.log(err)
 				})
 			})
-	}else if(vc2.channelId!==vc1.channelId){
-		connection.query('SELECT ownID FROM voices WHERE voiceID=?;',[vc1.channelId],(err,ownID_)=>{
+	}else if(vc2.channelId!==vc1.channelId&&vc1.channelId!==null){
+		connection.query('SELECT * FROM voices WHERE voiceID=?;',[vc1.channelId],(err,res)=>{
 			if(err)console.log(err)
-			if(ownID_[0])
-			if(ownID_[0]&&ownID_[0].ownID===vc1.id){
+
+
+			if(res[0]&&res[0].ownID===vc1.id){
 				if(!vc1.channel.members.size){
 					try {
 						sample.channels.cache.get(vc1.channelId).delete()
@@ -734,7 +744,7 @@ bot.on('voiceStateUpdate',(vc1,vc2)=>{
 					}
 				} else {
 					let nextMemberOwner = vc1.channel.members.toJSON()[Math.floor(Math.random() * (vc1.channel.members.size - 1))]
-					connection.query("UPDATE voices SET ownID=? WHERE ownID=?;",[nextMemberOwner.id, ownID_[0].ownID], (err)=>{
+					connection.query("UPDATE voices SET ownID=? WHERE ownID=?;",[nextMemberOwner.id, res[0].ownID], (err)=>{
 						if(err)console.log(err)
 						vc1.channel.edit({name: `${nextMemberOwner.user.username}'s channel`,
 							permissionOverwrites: [
