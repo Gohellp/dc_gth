@@ -1,7 +1,7 @@
 {
   "name": "dc_gth",
   "version": "1.0.0",
-  "main": "main.js",
+  "main": "main_old.js",
   "scripts": {
     "start": "node main"
   },
