@@ -1,4 +1,4 @@
-const {Client, Intents, MessageActionRow, MessageSelectMenu} = require("discord.js"),
+const {Client, Intents, MessageActionRow, MessageSelectMenu, MessageEmbed} = require("discord.js"),
 	moment = require("moment"),
 	{createConnection} = require("mysql2"),
 	{token,dbHost,dbLogin,dbPass} = require("./config.json"),
@@ -28,10 +28,20 @@ connection.query("select userID from admin order by perm;", (err, data)=>{
 		admins.push(it.userID)
 	})
 });
+connection.query("select discus_ch_id,forms_ch_id from rp_info;", (err, data)=>{
+	if(err)console.log(err)
+	data.map(it=>{
+		rp_discus_chs.push(it.discus_ch_id)
+		rp_forms_chs.push((it.forms_ch_id))
+	})
+})
 
-let project,
+let embed,
+	project,
+	rp_logs,
 	admins=[],
-	rp_channels=[],
+	rp_forms_chs=[],
+	rp_discus_chs=[],
 	commands=[
 		{
 			name:'rp',
@@ -58,18 +68,34 @@ let project,
 					required: true
 				},
 				{
-					name:"role",
+					name:"user_role",
 					type:"ROLE",
-					description:"RP's role",
+					description:"Users's rp role",
 					required: true
 				},
 				{
-					name:"channel",
+					name:"admin_role",
+					type:"ROLE",
+					description:"Admin's rp role",
+					required: true
+				},
+				{
+					name:"forms_channel",
 					type:"CHANNEL",
-					description:"RP forms channel",
+					description:"Forms channel",
+					required: true
+				},
+				{
+					name:"discus_channel",
+					type:"CHANNEL",
+					description:"Discussion channel",
 					required: true
 				}
 			]
+		},
+		{
+			name:"wipe",
+			description: "DROP TABLE"
 		}
 	];
 
@@ -92,17 +118,19 @@ function userCMDs(msg,cmd,args) {
 		break;
 	}
 }
-function check_form(){
-	//TODO: перенести проверку анкет из старого кода
+function check_form(msg){
+	msg.react("🤔")
+	//TODO:доделать отправку в чат обсуждений с упоминанеим роли рп админа
 }
 
 bot.on("ready", ()=>{
 	project=bot.guilds.cache.get("897986118077788221");
+	rp_logs=project.channels.cache.get("974431401556447302");
 
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`);
 })
 bot.on("messageCreate", async (msg)=>{
-	if(rp_channels.includes(msg.channel.id))check_form(msg);
+	if(rp_forms_chs.includes(msg.channel.id))check_form(msg);
 	if(!msg.content.startsWith("!")||msg.author.bot)return;
 	let cmd = msg.content.slice(1).toLocaleLowerCase().split(" ").shift(),
 		args =msg.content.split(" ").slice(1);
@@ -130,9 +158,6 @@ bot.on("messageCreate", async (msg)=>{
 				})
 				await msg.guild.commands.set(commands)
 			break;
-			case "wipe":
-				//TODO: сделать сброс статистики
-			break;
 			default:
 				userCMDs(cmd,args)
 		}
@@ -146,15 +171,26 @@ bot.on("interactionCreate",  inter=>{
 			case "rp":
 				const row = new MessageActionRow()
 				let menu = new MessageSelectMenu().setCustomId('rp_selectmenu').setPlaceholder('Select RP');
-				connection.query("select * from rp_parents;", (err,data)=>{
+				connection.query("select * from rp_info;", (err,data)=>{
+					//TODO: проверять кол-во строк в запросе и при кол-ве БОЛЕЕ пяти, запрашивать по 4 штуки(если до конца остаётся БОЛЕЕ 5ти строк)
 					if(err)console.log(err)
-					data.forEach(it=>{
-						menu.addOptions([{
-							label: it.value,
-							value: it.name
-						}])
+					//TODO:сделать обработку выпадающего списка БОЛЕЕ 5-ти элементов
+					data.forEach((it,index)=>{
+						if(index<5){
+							menu.addOptions([{
+								label: it.value,
+								value: it.name
+							}])
+						}else if(index<=5){
+							row.addComponents(
+								new MessageButton()
+									.setStyle("SECONDARY")
+									.setLabel("Next page")
+									.setCustomId("rp_next_page")
+							)
+						}
 					})
-					row.setComponents(menu);
+					row.addComponents(menu);
 					inter.reply({
 						components:[row],
 						ephemeral:true
@@ -162,33 +198,53 @@ bot.on("interactionCreate",  inter=>{
 				})
 			break
 			case "add_rp":
-				let data=""
+				let data=[]
 				args.map(it=>{
-					data+=" "+it.value
+					data.push(it.value)
 				})
-				data=data.split(" ")
-				connection.query(`insert into rp_parents(name, value, role_id) VALUES('${data[1]}','${data[2]}','${data[3]}')`, err => {
+				connection.query(`insert into rp_info(name, value, user_role_id, admin_role_id, forms_ch_id, discus_ch_id) VALUES('${data.join("','")}')`, err => {
 					if (err) return console.log(err);
 				})
-				connection.query(`insert into rp_channels(channel_id, parent_rp) values('${data[4]}','${data[2]}')`,err => {
-					if (err) return console.log(err);
-				})
+				embed = new MessageEmbed()
+					.setTitle("RP project successfully added")
+					.setColor("#00ff00")
 				inter.reply({
-					content:"RP project successfully added",
+					embeds:[embed],
 					ephemeral: true
 				})
 			break
+			case "wipe":
+				connection.query("delete from users;", err => {
+					if(err)console.log(err)
+				})
+				project.members.cache.map(user=>{
+					if(!user.bot)connection.query(`insert into users(userID, roles) VALUES("${user.id}","${user._roles.join("$")}")`, err => {
+						if (err) console.log(err)
+					})
+				})
+				embed=new MessageEmbed()
+					.setTitle("Wipe successful")
+					.addField(project.members.cache.size,"Was added")
+					.setColor("#5514d9")
+				inter.reply({
+					embeds:[embed],
+					ephemeral:true
+				})
+			break;
 		}
 	}else if(inter.isSelectMenu()){
 		const inter_id = inter.customId,
 			args = inter.values;
 		switch (inter_id) {
 			case "rp_selectmenu":
+				console.log(args)
 				args.map(it=>{
 					//TODO: доделать до открытия категории рп только по роли
 				})
 			break
 		}
+	}else if(inter.isButton()){
+		console.log(inter)
 	}else return;
 })
 bot.on("voiceStateUpdate", (vc1,vc2)=>{ //TODO: переписать эту заглушку
