@@ -299,7 +299,7 @@ bot.on("interactionCreate",  inter=>{
 					let embed = new MessageEmbed()
 						.setColor("#00ff00")
 						.setTitle("Role successfully added")
-						.addField("You can rp yet")
+						.addField("You can rp yet","real;D")
 					inter.update({
 						embeds:[embed],
 						ephemeral:true
