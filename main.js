@@ -36,6 +36,7 @@ connection.query("select discus_ch_id,forms_ch_id from rp_info;", (err, data)=>{
 let embed,
 	project,
 	admins=[],
+	logsChannel,
 	rp_info= {
 		forms_ch_id:[],
 		discus_ch_id: []
@@ -96,6 +97,53 @@ let embed,
 		{
 			name:"wipe",
 			description: "DROP TABLE"
+		},
+		{
+			name:"ban_sys",
+			description: "Work with ban sys",
+			options: [
+				{
+					name:"ban",
+					type:"SUB_COMMAND",
+					description: "This ban some user",
+					options:[
+						{
+							name:"user",
+							type:"USER",
+							description:"User, who will banned",
+							required: true
+						},
+						{
+							name: "ban_reason",
+							type: "STRING",
+							description: "Reason to ban user"
+						}
+					]
+				},
+				{
+					name:"unban",
+					type: "SUB_COMMAND",
+					description: "This unban some user",
+					options:[
+						{
+							name: "user",
+							type: "USER",
+							description: "User, who will unbanned",
+							required: true
+						},
+						{
+							name: "end_time",
+							type: "STRING",
+							description: "Timestamp in format 'SS_MM_HH_DD'. If u want permanent ban, leave this blank"
+						},
+						{
+							name: "ban_reason",
+							type: "STRING",
+							description: "Reason to unban user"
+						}
+					]
+				}
+			]
 		}
 	];
 
@@ -113,7 +161,7 @@ function userCMDs(msg,cmd,args) {
 					break;
 				}
 			}else{
-				msg.reply("Here is bot's commands:\nThere is only !report.\nReport: `!report {mention of user} {reason/channel's ID/message's ID}`\n\\>\\>\\>\\>This send report u'r report to admin chat.\n\npaparating na:D")
+				msg.reply("Here is bot's commands:\nThere is nothing\n\npaparating na:D")
 			}
 		break;
 	}
@@ -196,6 +244,7 @@ function keep_connection(){
 bot.on("ready", ()=>{
 	setInterval(keep_connection, 5*60*1000)
 	project=bot.guilds.cache.get("897986118077788221");
+	logsChannel=project.channels.cache.find(ch=>ch.name==="sample_logs")
 
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`);
 })
@@ -253,6 +302,7 @@ bot.on("messageReactionAdd", (react,user)=>{
 bot.on("interactionCreate",  inter=>{
 	if(inter.isCommand()){
 		let cmd = inter.commandName,
+			subcmd = inter.options._subcommand,
 			args = inter.options._hoistedOptions
 		switch (cmd) {
 			case "rp":
@@ -326,6 +376,18 @@ bot.on("interactionCreate",  inter=>{
 					ephemeral:true
 				})
 			break;
+			case "ban_sys":
+				switch (subcmd) {
+					//TODO:доделать ban_sys
+					case"ban":
+					break
+					case"unban":
+
+					break
+				}
+			break
+			default:
+				console.log(cmd)
 		}
 	}else if(inter.isSelectMenu()){
 		const inter_id = inter.customId,
@@ -367,7 +429,7 @@ bot.on("guildMemberUpdate",(oldMbr,newMbr)=>{
 bot.on("voiceStateUpdate", (vc1,vc2)=>{
 	if(vc2.channelId==="897986118954414103"){
 		if(vc1.channelId!==null&&!vc1.channel.members.size){
-			sample.channels.cache.get(vc1.channelId).delete()
+			project.channels.cache.get(vc1.channelId).delete()
 				.then(() => {
 					connection.query('DELETE FROM voices WHERE ownID=?;', [vc1.id], err1 => {
 						if (err1) console.log(err1)
@@ -375,9 +437,9 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 				})
 		}
 
-		sample.channels.create(`${sample.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
+		project.channels.create(`${project.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'GUILD_VOICE',
-			parent:sample.channels.cache.get('897986118954414101'),//ID of voice category
+			parent:project.channels.cache.get('897986118954414101'),//ID of voice category
 			permissionOverwrites:[
 				{
 					id: vc2.id,
@@ -399,7 +461,7 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 			if(res[0]&&res[0].ownID===vc1.id){
 				if(!vc1.channel.members.size){
 					try {
-						sample.channels.cache.get(vc1.channelId).delete()
+						project.channels.cache.get(vc1.channelId).delete()
 							.then(() => {
 								connection.query('DELETE FROM voices WHERE ownID=?;', [vc1.id], err1 => {
 									if (err1) console.log(err1)
