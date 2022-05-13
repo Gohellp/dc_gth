@@ -10,11 +10,8 @@ const {Client, Intents, MessageActionRow, MessageSelectMenu, MessageEmbed, Messa
 				Intents.FLAGS.GUILD_MESSAGES,
 				Intents.FLAGS.DIRECT_MESSAGES,
 				Intents.FLAGS.GUILD_VOICE_STATES,
-				Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-				Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-				Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-			],
-		partials: ['USER','CHANNEL','GUILD_MEMBER','MESSAGE','REACTION']
+				Intents.FLAGS.GUILD_MESSAGE_REACTIONS
+			]
 	}),
 	connection = createConnection({
 		host:dbHost,
@@ -156,15 +153,56 @@ function select_rp(inter, offset){
 		})
 	})
 }
+function user_stats(msg){
+	console.log(`\x1b[35m[${moment().format("DD.MM HH:mm:ss")}]\x1b[34m\n\tchatID:\x1b[0m ${msg.channelId}\x1b[34m\n\tuserID:\x1b[0m ${msg.author.id}\x1b[34m\n\tusertag:\x1b[0m ${msg.author.username}#${msg.author.discriminator}\x1b[34m\n\tmsgID:\x1b[0m ${msg.id}\x1b[34m\n\ttext:\x1b[0m>${msg.content}<`)
+	connection.query(`SELECT * FROM users WHERE userID = ${msg.author.id};`,(err,res)=>{
+		if(err)console.log(err);
+		if(res.length!==0){
+			if(res[0].msgCount%res[0].divisor!==0){
+				connection.query(`UPDATE users SET msgCount = ${res[0].msgCount+=1} WHERE userID = ${msg.author.id};`,(err)=>{
+					if(err)console.log(err);
+				})
+			}else{
+				connection.query('UPDATE users SET msgCount=?, lvl=?, divisor=? WHERE userID=?;',[res[0].msgCount+1,res[0].lvl+1,res[0].divisor+25*(res[0].lvl+1),msg.author.id],(err)=>{
+					if(err) console.log(err);
+				})
+			}
+		}else{
+			connection.query(`INSERT INTO users(userID,roles) VALUES (?);`,[msg.author.id.toString(),msg.member._roles.join("$").replace(/s/,"")],(err)=>{
+				if(err)console.log(err);
+			})
+		}
+	})
+}
+function keep_connection(){
+	connection.query("SELECT * FROM mutedPPL;", (err,data)=>{
+		if(err)console.log(err)
+		data.forEach(it=>{
+			if(Number(it.endMute)<Date.now()){
+				sample.members.cache.get(it.userID).roles.remove(mute,`End of mute`)
+					.then(mbr=>{
+						if(it.roles.split("$")){
+							mbr.roles.add(it.roles.split("$"))
+						}
+						mbr.user.createDM()
+							.then(dm=>dm.send("```Your mute is over.\nAll privileges have been restored.```"))
+						connection.query("DELETE FROM mutedPPL WHERE userID=?",it.userID)
+					})
+			}
+		})
+	})
+}
 
 bot.on("ready", ()=>{
+	setInterval(keep_connection, 5*60*1000)
 	project=bot.guilds.cache.get("897986118077788221");
 
 	console.log(`${bot.user.username} is started at ${moment().format('HH:mm:ss')}`);
 })
 bot.on("messageCreate", async (msg)=>{
+	if(msg.author.bot)return;
 	if(rp_info.forms_ch_id.includes(msg.channel.id))msg.react("🤔");
-	if(!msg.content.startsWith("!")||msg.author.bot)return;
+	if(!msg.content.startsWith("!"))return user_stats(msg);
 	let cmd = msg.content.slice(1).toLocaleLowerCase().split(" ").shift(),
 		args =msg.content.split(" ").slice(1);
 	if(admins.includes(msg.author.id)){
@@ -270,17 +308,18 @@ bot.on("interactionCreate",  inter=>{
 				})
 			break
 			case "wipe":
+				console.log(bot.guilds.cache.get("897986118077788221").members.cache)
 				connection.query("delete from users;", err => {
 					if(err)console.log(err)
 				})
 				project.members.cache.map(user=>{
-					if(!user.bot)connection.query(`insert into users(userID, roles) VALUES("${user.id}","${user._roles.join("$")}")`, err => {
+					if(!user.user.bot)connection.query(`insert into users(userID, roles) VALUES("${user.id}","${user._roles.join("$")}")`, err => {
 						if (err) console.log(err)
 					})
 				})
 				embed=new MessageEmbed()
 					.setTitle("Wipe successful")
-					.addField(project.members.cache.size,"Was added")
+					.addField("Was added", project.members.cache.size+'mb":D')
 					.setColor("#5514d9")
 				inter.reply({
 					embeds:[embed],
