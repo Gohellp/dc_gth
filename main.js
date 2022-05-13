@@ -291,6 +291,8 @@ bot.on("messageReactionAdd", (react,user)=>{
 				if(err)console.log(err)
 				project.channels.cache.get(data[0].main_ch_id).permissionOverwrites.create(react.message.author.id,{
 					'SEND_MESSAGES':true,
+					'CREATE_PUBLIC_THREADS':true,
+					'SEND_MESSAGES_IN_THREADS':true
 				})
 			})
 		}
