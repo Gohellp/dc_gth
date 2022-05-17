@@ -317,7 +317,7 @@ bot.on("messageReactionAdd", (react,user)=>{
 	if(project.members.cache.get(user.id).roles.cache.has("974444939704426496")){
 		if(react.emoji.name==="✅"){
 			connection.query("select main_ch_id from rp_info where forms_ch_id=?",[react.message.channel.id], (err, data)=>{
-				if(err)console.log(err)
+				if(err&&err.errno!==1136)console.log(err)
 				project.channels.cache.get(data[0].main_ch_id).permissionOverwrites.create(react.message.author.id,{
 					'SEND_MESSAGES':true,
 					'CREATE_PUBLIC_THREADS':true,
