@@ -448,6 +448,7 @@ bot.on("interactionCreate",  inter=>{
 								ephemeral: true
 							})
 							project.channels.cache.get(data[0].discus_ch_id).send({
+								content: args[1].value,
 								embeds: [embed],
 								files: attach
 							})
