@@ -418,7 +418,7 @@ bot.on("interactionCreate",  inter=>{
 				}
 			break
 			case "rp_discus":
-				connection.query("select discus_ch_id from rp_info where main_ch_id=?;",[inter.channelId],(err,data)=>{
+				connection.query("select discus_ch_id from rp_info where main_ch_id=?;",[inter.channel.type==="GUILD_PUBLIC_THREAD"?inter.channel.parentId:inter.channelId],(err,data)=>{
 					if(err)console.log(err);
 					inter.channel.messages.fetch(args[0].value)
 						.then(msg=> {
