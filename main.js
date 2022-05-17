@@ -424,7 +424,7 @@ bot.on("interactionCreate",  inter=>{
 						.then(msg=> {
 							let attach=[]
 							let embed = new MessageEmbed()
-								.setTitle("Start discussion")
+								.setTitle(args[1].value)
 								.setColor("#00ffff")
 								.setAuthor({
 									name: inter.user.username,
@@ -444,17 +444,40 @@ bot.on("interactionCreate",  inter=>{
 								i++
 							})
 							inter.reply({
-								content:`Discussion started at <#${data[0].discus_ch_id}>`,
+								content:`Discussion started in <#${data[0].discus_ch_id}>`,
 								ephemeral: true
 							})
 							project.channels.cache.get(data[0].discus_ch_id).send({
-								content: args[1].value,
 								embeds: [embed],
 								files: attach
 							})
 						})
 				})
 			break;
+			case"help":
+				switch (args[0]) {
+					case"rp_discus":
+						embed=new MessageEmbed()
+							.setTitle("Helpful info")
+							.addField("msg_id","Here should be the ID of the message you want to discuss")
+							.addField("msg_content","Here should be what you think about the message")
+							.addField("How to find msg id?","Go to settings > advanced and turn on \"developer mode\"")
+							.addField("","(I couldn't do it any other way, forgive me <З)")
+						inter.reply({
+							embeds:[embed],
+							ephemeral: true
+						})
+					break
+					default:
+						embed=new MessageEmbed()
+							.setTitle("Helpful info")
+							.addField("",`Sorry, I couldn't find the command "${args[0]}"`)
+						inter.reply({
+							embeds:[embed],
+							ephemeral: true
+						})
+				}
+				break
 			default:
 				console.log(inter)
 		}
