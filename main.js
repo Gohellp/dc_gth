@@ -144,6 +144,35 @@ let embed,
 					]
 				}
 			]
+		},
+		{
+			name:"rp_discus",
+			description: "Start some discussion:D",
+			options:[
+				{
+					name:"msg_id",
+					type:"STRING",
+					description: "ID of msg you want to discuss",
+					required: true
+				},
+				{
+					name:"msg_content",
+					type: "STRING",
+					description: "Message's text",
+					required: true
+				}
+			]
+		},
+		{
+			name: "help",
+			description: "Help with some command",
+			options: [
+				{
+					name:"command_name",
+					type: "STRING",
+					description: "Name of cmd to help with"
+				}
+			]
 		}
 	];
 
@@ -304,7 +333,7 @@ bot.on("messageReactionAdd", (react,user)=>{
 bot.on("interactionCreate",  inter=>{
 	if(inter.isCommand()){
 		let cmd = inter.commandName,
-			subcmd = inter.options._subcommand,
+			sub_cmd = inter.options._subcommand,
 			args = inter.options._hoistedOptions
 		switch (cmd) {
 			case "rp":
@@ -379,7 +408,7 @@ bot.on("interactionCreate",  inter=>{
 				})
 			break;
 			case "ban_sys":
-				switch (subcmd) {
+				switch (sub_cmd) {
 					//TODO:доделать ban_sys
 					case"ban":
 					break
@@ -388,8 +417,45 @@ bot.on("interactionCreate",  inter=>{
 					break
 				}
 			break
+			case "rp_discus":
+				connection.query("select discus_ch_id from rp_info where main_ch_id=?;",[inter.channelId],(err,data)=>{
+					if(err)console.log(err);
+					inter.channel.messages.fetch(args[0].value)
+						.then(msg=> {
+							let attach=[]
+							let embed = new MessageEmbed()
+								.setTitle("Start discussion")
+								.setColor("#00ffff")
+								.setAuthor({
+									name: inter.user.username,
+									iconURL: inter.user.avatarURL
+								})
+								.addField("Message content", msg.content)
+								.setImage(msg.attachments.first()?msg.attachments.first().url:"")
+							let i=0;
+							msg.attachments.map((_attach)=>{
+								if(i>0){
+									attach.push({
+										id: _attach.id,
+										name: _attach.name,
+										attachment: _attach.url
+									})
+								}
+								i++
+							})
+							inter.reply({
+								content:`Discussion started at <#${data[0].discus_ch_id}>`,
+								ephemeral: true
+							})
+							project.channels.cache.get(data[0].discus_ch_id).send({
+								embeds: [embed],
+								files: attach
+							})
+						})
+				})
+			break;
 			default:
-				console.log(cmd)
+				console.log(inter)
 		}
 	}else if(inter.isSelectMenu()){
 		const inter_id = inter.customId,
