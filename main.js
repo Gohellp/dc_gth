@@ -642,7 +642,12 @@ bot.on("interactionCreate",  inter=>{
 								.addField("Available:", `<@${inter.user.id}>`, true)
 							channel.send({
 								embeds: [embed]
-							}).then(msg=>msg.pin("Sets rp_state msg"))
+							}).then(msg=> {
+								msg.pin("Sets rp_state msg")
+								connection.query("update rp_info set state_msg_id=? where value=?;",[msg.id,rp_name],err1=>{
+									if(err1) console.log(err1)
+								})
+							})
 							inter.update({
 								embeds:[
 									new MessageEmbed()
@@ -650,6 +655,7 @@ bot.on("interactionCreate",  inter=>{
 										.setColor("#00ff00")
 								]
 							})
+
 						}
 					}
 				})
