@@ -173,6 +173,10 @@ let embed,
 					description: "Name of cmd to help with"
 				}
 			]
+		},
+		{
+			name:"rp_state",
+			description: "Change your rp state on server"
 		}
 	];
 
@@ -195,14 +199,14 @@ function userCMDs(msg,cmd,args) {
 		break;
 	}
 }
-function select_rp(inter, offset){
+function select_rp(inter, select_menu_id, button_id, offset){
 	const row = new MessageActionRow()
-	let menu = new MessageSelectMenu().setCustomId('rp_selectmenu').setPlaceholder('Select RP'),
+	let menu = new MessageSelectMenu().setCustomId(select_menu_id).setPlaceholder('Select RP').setMaxValues(5),
 		button = new MessageButton()
 			.setStyle("SECONDARY")
 			.setLabel("Next page")
-			.setCustomId("rp_next_page")
-	connection.query("select * from rp_info limit 6 offset ?",[offset],(err,data)=>{
+			.setCustomId("rp_next_page"+(offset+4))
+	connection.query("select * from rp_info limit 6 offset ?;",[offset],(err,data)=>{
 		if(err)console.log(err)
 		if(data.length===5){
 			data.forEach((it)=>{
@@ -332,20 +336,21 @@ bot.on("messageReactionAdd", (react,user)=>{
 })
 bot.on("interactionCreate",  inter=>{
 	if(inter.isCommand()){
-		let cmd = inter.commandName,
+		const cmd = inter.commandName,
 			sub_cmd = inter.options._subcommand,
 			args = inter.options._hoistedOptions
 		switch (cmd) {
 			case "rp":
-				const row = new MessageActionRow()
-				let menu = new MessageSelectMenu().setCustomId('rp_selectmenu').setPlaceholder('Select RP'),
-					button = new MessageButton()
-						.setStyle("SECONDARY")
-						.setLabel("Next page")
-						.setCustomId("rp_next_page"+inter)
-
 				connection.query("select * from rp_info;", (err,data)=>{
 					if(err)console.log(err)
+
+					const row = new MessageActionRow()
+					let menu = new MessageSelectMenu().setCustomId('rp_selectmenu').setPlaceholder('Select RP'),
+						button = new MessageButton()
+							.setStyle("SECONDARY")
+							.setLabel("Next page")
+							.setCustomId("rp_next_page4")
+
 					if(data.length===5){
 						data.forEach((it)=>{
 							menu.addOptions([{
@@ -478,6 +483,43 @@ bot.on("interactionCreate",  inter=>{
 						})
 				}
 				break
+			case "rp_state":
+				connection.query("select * from rp_info;", (err,data)=>{
+					if(err)console.log(err)
+
+					const row = new MessageActionRow()
+					let menu = new MessageSelectMenu().setCustomId('rp_state_select').setPlaceholder('Select RP'),
+						button = new MessageButton()
+							.setStyle("SECONDARY")
+							.setLabel("Next page")
+							.setCustomId("rp_state_next_page4")
+
+					if(data.length===5){
+						data.forEach((it)=>{
+							menu.addOptions([{
+								label: it.name,
+								value: it.value
+							}])
+						})
+					}else{
+						data.forEach((it, index)=>{
+							if(index < 5) {
+								menu.addOptions([{
+									label: it.name,
+									value: it.value
+								}])
+							}else if(index===5){
+								row.addComponents(button)
+							}
+						})
+					}
+					row.addComponents(menu);
+					inter.reply({
+						components:[row],
+						ephemeral:true
+					})
+				})
+			break
 			default:
 				console.log(inter)
 		}
@@ -499,12 +541,121 @@ bot.on("interactionCreate",  inter=>{
 					})
 				})
 			break
+			case"rp_state_select":
+				let row = new MessageActionRow().setComponents(
+					new MessageButton()
+						.setLabel("Unavailable")
+						.setStyle("DANGER")
+						.setCustomId("rp_state_unavailable$"+args.join("$")),
+					new MessageButton()
+						.setLabel("Available")
+						.setStyle("SUCCESS")
+						.setCustomId("rp_state_available$"+args.join("$"))
+					),
+					embed = new MessageEmbed()
+						.setTitle("Select your state in "+args.join(" and "))
+						.setColor("#5800d7")
+				inter.reply({
+					embeds:[embed],
+					components:[row],
+					ephemeral:true
+				})
+			break
 		}
 	}else if(inter.isButton()){
 		if(inter.customId.match(/rp_next_page/)){
-			return select_rp(inter, parseInt(inter.customId.replace(/rp_next_page/,"")))
+			return select_rp(inter, "rp_selectmenu", inter.customId, parseInt(inter.customId.replace(/rp_next_page/,"")))
+		}else if(inter.customId.match(/rp_state_next_page/)){
+			return select_rp(inter, "rp_state_select", inter.customId, parseInt(inter.customId.replace(/rp_state_next_page/,"")))
+		}else if(inter.customId.match(/^rp_state_unavailable|^rp_state_available/)){
+			let args = inter.customId.split("$").slice(1),
+				cmd = inter.customId.split("$").shift()
+			args.map(rp_name=>{
+				connection.query("select discus_ch_id,state_msg_id from rp_info where value=?;",[rp_name],(err,data)=>{
+					// /unavailable/
+					let channel = project.channels.cache.get(data[0].discus_ch_id)
+
+					if(cmd.match(/unavailable$/)){
+						if(data[0].state_msg_id){
+							channel.messages.fetch(data[0].state_msg_id)
+								.then(msg=>{
+									embed = new MessageEmbed()
+										.setAuthor({
+											name: "gohellp",
+											iconURL: "https://cdn.discordapp.com/avatars/653202825580380193/965786893775cfd51fdd063e241eee00.webp"
+										})
+										.setTitle("Users rp_state")
+										.setColor("#00ff00")
+									msg.embeds.map(embed_=>embed_.fields.map(field=>{
+										if(field.value!==`<@${inter.user.id}>`){
+											embed.addField(field.name,field.value,field.inline)
+										}
+									}))
+									msg.edit({
+										embeds:[embed]
+									})
+									inter.update({
+										embeds:[
+											new MessageEmbed()
+												.setTitle("Success change state for "+args.join(" and "))
+												.setColor("#00ff00")
+										]
+									})
+								})
+						}
+					}else{
+						if(data[0].state_msg_id) {
+							channel.messages.fetch(data[0].state_msg_id)
+								.then(msg=>{
+									embed = new MessageEmbed()
+										.setAuthor({
+											name: "gohellp",
+											iconURL: "https://cdn.discordapp.com/avatars/653202825580380193/965786893775cfd51fdd063e241eee00.webp"
+										})
+										.setTitle("Users rp_state")
+										.setColor("#00ff00")
+									msg.embeds.map(embed_=>embed_.fields.map(field=>{
+										if(field.value!==`<@${inter.user.id}>`){
+											embed.addField(field.name,field.value,field.inline)
+										}
+									}))
+										embed.addField("Available:", `<@${inter.user.id}>`, true)
+									msg.edit({
+										embeds: [embed]
+									})
+									inter.update({
+										embeds:[
+											new MessageEmbed()
+												.setTitle("Success change state for "+args.join(" and "))
+												.setColor("#00ff00")
+										]
+									})
+								})
+						}else{
+							embed = new MessageEmbed()
+								.setAuthor({
+									name: "gohellp",
+									iconURL: "https://cdn.discordapp.com/avatars/653202825580380193/965786893775cfd51fdd063e241eee00.webp"
+								})
+								.setColor("#00ff00")
+								.setTitle("Users rp_state")
+								.addField("Available:", `<@${inter.user.id}>`, true)
+							channel.send({
+								embeds: [embed]
+							}).then(msg=>msg.pin("Sets rp_state msg"))
+							inter.update({
+								embeds:[
+									new MessageEmbed()
+										.setTitle("Success")
+										.setColor("#00ff00")
+								]
+							})
+						}
+					}
+				})
+			})
 		}
-	}else return;
+	}
 })
 bot.on("guildMemberUpdate",(oldMbr,newMbr)=>{
 	if(newMbr.bot)return;
@@ -582,3 +733,10 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 })
 
 bot.login(token)
+
+process.on('exit',code=>{
+	connection.query('update rp_info set state_msg_id="" where length(state_msg_id)>0;',err=>{
+		if(err)console.log(err)
+		console.log(code)
+	})
+})
