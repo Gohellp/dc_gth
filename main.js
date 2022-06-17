@@ -532,7 +532,7 @@ bot.on("voiceStateUpdate", (vc1,vc2)=>{
 
 		project.channels.create(`${project.members.cache.find(m=>m.id===vc2.id).user.username}'s channel`,{
 			type:'GUILD_VOICE',
-			parent:project.channels.cache.get('897986118954414101'),//ID of voice category
+			parent:'897986118954414101',//ID of voice category
 			permissionOverwrites:[
 				{
 					id: vc2.id,
