@@ -1,9 +1,9 @@
 {
   "name": "dc_gth",
-  "version": "1.0.0",
+  "version": "0.2.1",
   "main": "main_old.js",
   "scripts": {
-    "start": "node main"
+    "start": "nodemon main"
   },
   "author": "gohellp",
   "license": "ISC",

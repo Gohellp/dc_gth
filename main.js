@@ -507,6 +507,20 @@ bot.on("interactionCreate",  inter=>{
 		}
 	}
 })
+bot.on("guildMemberAdd", async member=>{
+	await connection.promise().query("select banned,roles from users where userID = ?;",[member.id])
+		.then(async ([data])=>{
+			if(data.length===0){
+				member.roles.add("898339903417483285")
+				return await connection.promise().query(`insert into users(userID, roles) values (?,?)`,[member.id,"898339903417483285"])
+					.catch(err=>console.log(err));
+			}else{
+				if(data[0].banned)return member.kick("Banned");
+				member.roles.add(data[0].roles.split("$"))
+			}
+		})
+		.catch(err=>console.log(err))
+})
 bot.on("guildMemberUpdate",(oldMbr,newMbr)=>{
 	if(newMbr.bot)return;
 	let rolesID=[];
